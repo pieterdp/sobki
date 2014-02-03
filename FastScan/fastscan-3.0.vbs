@@ -103,7 +103,7 @@ do while not ObjConfig_file.AtEndOfStream
 	base_out_dir = read_config_value (line, "^base_output_dir='(.*)'$")
 	outdir = base_out_dir & "\"
 	' Log Directory
-	base_logdir = read_config_value (line, "^log_dir='(.*)'")
+	base_logdir = read_config_value (line, "^log_dir='(.*)'$")
 	logdir = base_logdir & "\"
 loop
 ObjConfig_file.Close
