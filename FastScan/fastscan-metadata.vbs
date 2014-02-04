@@ -140,7 +140,7 @@ Set Shell = nothing
 IMInfo = IMIdentify (FilePath)
 For Each rTag in rTags
 	If rTag = "Software" Then
-		nTags.Add rTag, "Sobki<https://github.com/pieterdp/sobki>"
+		nTags.Add rTag, "Sobki <https://github.com/pieterdp/sobki>"
 	End If
 	If oTags.Item (rTag) <> "" And rTag <> "Software" Then
 		nTags.Add rTag, oTags.Item (rTag)
@@ -172,14 +172,14 @@ For Each rTag in rTags
 			Case "ImageUniqueID"
 				nTags.Add rTag, Number
 			Case "ModifyDate"
-				nTags.Add rTag, Replace(f.DateLastModified, " ", "T")
+				nTags.Add rTag, f.DateLastModified
 			Case "CreateDate"
-				nTags.Add rTag, Replace(f.DateCreated, " ", "T")
+				nTags.Add rTag, f.DateCreated
 			Case "ImageDescription"
 				' Leave this empty
 			Case "Artist"
 				' 2 Artists: Original & Scan
-				nTags.Add rTag, "Original:;Scan:PBT:" & UserName
+				nTags.Add rTag, "Original: ; Scan: PBT: " & UserName
 			Case "Make"
 				nTags.Add rTag, nMakes (ComputerName)
 			Case "Model"
@@ -194,5 +194,13 @@ Wscript.Echo "Adding metadata to file ... "
 Set Shell = CreateObject ("WScript.Shell")
 For Each nTag in nTags
 	'Wscript.Echo "Writing " & nTag & " to value " & nTags (nTag) & ": " & eCommand & "-" & nTag & "=" & nTags (nTag) & " " & chr(34) & FilePath & chr(34)
-	Shell.Run eCommand & "-" & nTag & "=" & nTags (nTag) & " " & chr(34) & FilePath & chr(34), 0, true
+	Shell.Run eCommand & "-" & nTag & "=" & chr(34) & nTags (nTag) & chr(34) & " " & chr(34) & FilePath & chr(34), 0, true
 Next
+
+' Now split this off in the same directory (to keep them together)
+Wscript.Echo "Splitting off metadata file ... "
+Shell.Run eCommand & " -j --FileSize --ModifyDate --FileModifyDate --FileAccessDate --FilePermissions " & chr(34) & FilePath & chr(34) & " > " & chr(34) & FilePath & ".json" & chr(34), 0, true
+
+' Quit
+Wscript.Echo "Finished."
+Wscript.Quit
