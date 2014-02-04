@@ -145,7 +145,7 @@ For Each rTag in rTags
 				' Convert between this field (int16u) and colorspace (string) -> 2 (RGB) is the default in this case
 				nTags.Add rTag, ConvertColorSpace (IMInfo (2))
 			Case "SamplesPerPixel"
-				' Don't now this, but convert sets this to 3 (RGB), and convert is used in FastScan to crop stuff
+				' Don't know this, but convert sets this to 3 (RGB), and convert is used in FastScan to crop stuff
 			Case "ResolutionUnit"
 				nTags.Add rTag, IMInfo (7)
 			Case "ImageUniqueId"
