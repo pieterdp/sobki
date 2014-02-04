@@ -1,4 +1,4 @@
-'    (c) 2013 Pieter De Praetere
+'    (c) 2013, 2014 Pieter De Praetere
 '
 '    This program is free software: you can redistribute it and/or modify
 '    it under the terms of version 3 of the GNU General Public License

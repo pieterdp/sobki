@@ -1,4 +1,4 @@
-'    (c) 2013 Pieter De Praetere
+'    (c) 2013, 2014 Pieter De Praetere
 '
 '    This program is free software: you can redistribute it and/or modify
 '    it under the terms of version 3 of the GNU General Public License
@@ -21,6 +21,23 @@ set shell = CreateObject ("WScript.Shell")
 set fso = CreateObject ("Scripting.FileSystemObject")
 username = shell.ExpandEnvironmentStrings ("%USERNAME%")
 config_path = "C:\Users\" & username & "\Applicaties\FastScan"
+
+' Directory checking
+if fso.FolderExists ("C:\Users") <> True then
+	fso.CreateFolder ("C:\Users")
+end if
+if fso.FolderExists ("C:\Users\" & username) <> True then
+	fso.CreateFolder ("C:\Users" & username)
+end if
+if fso.FolderExists ("C:\Users\" & username & "\Applicaties") <> True then
+	fso.CreateFolder ("C:\Users" & username & "\Applicaties")
+end if
+if fso.FolderExists ("C:\Users\" & username & "\Applicaties\FastScan") <> True then
+	fso.CreateFolder ("C:\Users" & username & "\Applicaties\FastScan")
+end if
+if fso.FolderExists ("C:\Users\" & username & "\Applicaties\FastScan\log") <> True then
+	fso.CreateFolder ("C:\Users" & username & "\Applicaties\FastScan\log")
+end if
 
 config_file = config_path & "\config.txt"
 set ObjConfig_file = fso.OpenTextFile (config_file, 2, true)

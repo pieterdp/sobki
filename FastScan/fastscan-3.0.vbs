@@ -1,4 +1,4 @@
-'    (c) 2013 Pieter De Praetere
+'    (c) 2013, 2014 Pieter De Praetere
 '
 '    This program is free software: you can redistribute it and/or modify
 '    it under the terms of version 3 of the GNU General Public License
@@ -109,7 +109,11 @@ loop
 ObjConfig_file.Close
 set ObjConfig_file = Nothing
 ' Something is wrong with log_dir
-base_logdir = "C:\Users\" & username & "\Applicaties\FastScan\log"
+if LCase (username) = "tolvrij" then
+	base_logdir = "L:\PBC\Beeldbank\99sys_SCANS\log_a"
+else
+	base_logdir = "C:\Users\" & username & "\Applicaties\FastScan\log"
+end if
 logdir = base_logdir & "\"
 
 ' Create output directories
@@ -163,9 +167,12 @@ End Select
 ' 7) Ask whether the user wishes to do another scan or would like to terminate
 backside = 0
 brun = 0
+item = 1
 do while 1 = 1
 	last = last_number (logdir & prefix & "_lastlog.txt")
 	' Backside
+	Wscript.Echo "Scan " & item & ":"
+	item = item + 1
 	if backside <> 1 then
 		' Not a backside
 		' Reset brun
@@ -173,11 +180,22 @@ do while 1 = 1
 		' New number
 		number = last + 1
 		' Ask whether this image has a backside
-		is_n_correct = u_input ("Automatisch gegenereerd nummer (nieuw nummer ingeven indien niet correct): [" & number & "]")
-		if is_n_correct <> "" then
-			number = is_n_correct
-		end if
+		do while 1 = 1
+			is_n_correct = u_input ("Automatisch gegenereerd nummer (nieuw nummer ingeven indien niet correct): [" & number & "]")
+			if is_n_correct = "" then
+				exit do
+			end if
+			if is_n_correct <> "" then
+				if IsNumeric (is_n_correct) then
+					number = is_n_correct
+					exit do
+				end if
+			end if
+		loop
 		has_backside = u_input ("Heeft dit item een achterkant? ([J]a/[N]ee)")
+		if has_backside = "" and prefix = "BID" then
+			has_backside = "j"
+		end if
 		if InStr (LCase (has_backside), "j") <> 0 then
 			' Yes
 			backside = 1
@@ -236,13 +254,25 @@ do while 1 = 1
 		Loop
 		Pause ("Opgelet! Gebruik de juiste achtergrond voor het scannen (zwart voor witte rand en geen rand; wit voor zwarte rand)!")
 	end if
+	if prefix = "BID" then
+		' Ask about the border colour of the item
+		border_type = "unbound"
+		Do Until border_type = "Z" or border_type = "W" or border_type = "G"
+			border_type = u_input ("Heeft de bidprent een zwarte (Z), witte (W) of geen (G) rand?")
+			border_type = UCase (border_type)
+			if border_type = "" then
+				border_type = "G"
+			end if
+		Loop
+		Pause ("Opgelet! Gebruik de juiste achtergrond voor het scannen (zwart voor witte rand en geen rand; wit voor zwarte rand)!")
+	end if
 	' Some jiggery-pokery because some systems don't quite behave as they should
 	Wscript.Echo "Scannen van " & prefix & pad (number) & " naar " & filename & "..."
 	Pause ("Leg het item binnen het scanbare gedeelte op de glasplaat en druk op OK om door te gaan")
 	iview = chr(34) & "C:\Program Files\IrfanView\" & "i_view32.exe" & chr(34)
 	if shell.ExpandEnvironmentStrings ("%computername%") = "PC1040198" then
 		' Difficult case
-		shell.Run iview & " /scan /dpi=(300,300) /convert=" & raw_dir & "\" & filename, 1, true
+		shell.Run iview & " /scanhidden /dpi=(300,300) /convert=" & raw_dir & "\" & filename, 1, true
 	'elseif shell.ExpandEnvironmentStrings ("%computername%") = "PC1240047" then
 	'	' Expensive scanner with a lot of options
 	'	shell.Run iview & " /scanhidden /dpi=(300,300) /convert=" & raw_dir & "\" & filename, 2, true
@@ -265,7 +295,7 @@ do while 1 = 1
 			Wscript.Echo "Bezig met bijsnijden ... "
 			' Using the new black cover made everything below useless, but it's kept (one never knows)
 			' Use the new cropper - with high fuzz factor due to nice contrast with black background (le expensive scanneur!) => 10% for scanners with white backgrounds
-				shell.Run "cscript fastscan-crop.vbs " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "15%", 0, true
+				shell.Run "cscript K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\FastScan\fastscan-crop.vbs " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "15%", 0, true
 ' <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< BELOW IS NO LONGER USED >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 '			'if shell.ExpandEnvironmentStrings ("%computername%") = "PC1040198" or shell.ExpandEnvironmentStrings ("%computername%") = "PC0840196" then
 '			if shell.ExpandEnvironmentStrings ("%computername%") = "PC0840196" then ' When the black cover of the old Canon Scanner is used
@@ -299,32 +329,46 @@ do while 1 = 1
 			Select Case border_type
 				Case "W"
 					'25%
-					shell.Run "cscript fastscan-crop.vbs " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "25%", 0, true
+					shell.Run "cscript K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\FastScan\fastscan-crop.vbs " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "25%", 0, true
 				Case "Z"
 					'38%
-					shell.Run "cscript fastscan-crop.vbs " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "38%", 0, true
+					shell.Run "cscript K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\FastScan\fastscan-crop.vbs " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "38%", 0, true
 				Case "G"
 					'15% (to be on the safe side)
-					shell.Run "cscript fastscan-crop.vbs " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "15%", 0, true
+					shell.Run "cscript K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\FastScan\fastscan-crop.vbs " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "15%", 0, true
 			End Select
 		Case "BID"
 			' Cuttings
 			Wscript.Echo "Bijsnijden van " & filename & "..."
-			Dim bSizes
-			bSizes = Array ("", "1100x1600", "2200x1600")
-			bsize = u_input ("Wat is het standaardformaat van het bidprentje? (1, 2)")
-			if bsize = "" then
-				bsize = 1
-			end if
 			Wscript.Echo "Bezig met bijsnijden ... "
-			shell.Run "K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\ImageMagick\im_convert.exe -crop " & bSizes (bsize) & "+0+0 " & raw_dir & "\" & filename & " " & edit_dir & "\" & filename, 0, true
-			if fso.FileExists (edit_dir & "\" & filename) <> true then
-				Wscript.Echo "Fout: bijsnijden niet voltooid. Mogelijk is de schijf vol. Programma afgesloten."
-				Wscript.Sleep 5000
-				Wscript.Quit
-			else
-				Wscript.Echo "Bijsnijden voltooid"
-			end if
+			Select Case border_type
+				Case "W"
+					'25%
+					shell.Run "cscript K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\FastScan\fastscan-crop.vbs " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "25%", 0, true
+				Case "Z"
+					'38%
+					shell.Run "cscript K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\FastScan\fastscan-crop.vbs " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "38%", 0, true
+				Case "G"
+						'15% (to be on the safe side)
+					shell.Run "cscript K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\FastScan\fastscan-crop.vbs " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "15%", 0, true
+			End Select
+' <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< BELOW IS NO LONGER USED >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+'			Dim bSizes
+'			bSizes = Array ("", "1100x1600", "2200x1600")
+'			bsize = u_input ("Wat is het standaardformaat van het bidprentje? (1, 2)")
+'			if bsize = "" then
+'				bsize = 1
+'			end if
+'			Wscript.Echo "Bezig met bijsnijden ... "
+'			shell.Run "K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\ImageMagick\im_convert.exe -crop " & bSizes (bsize) & "+0+0 " & raw_dir & "\" & filename & " " & edit_dir & "\" & filename, 0, true
+'			if fso.FileExists (edit_dir & "\" & filename) <> true then
+'				Wscript.Echo "Fout: bijsnijden niet voltooid. Mogelijk is de schijf vol. Programma afgesloten."
+'				Wscript.Sleep 5000
+'				Wscript.Quit
+'			else
+'				Wscript.Echo "Bijsnijden voltooid"
+'			end if
+' <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ENDS HERE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	End Select
 	' If this image has a backside & brun = 0
 	' then don't ask questions, but continue the loop
