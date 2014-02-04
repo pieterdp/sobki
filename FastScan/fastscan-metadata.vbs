@@ -53,9 +53,13 @@ Function CheckTags (FileName)
 	' Setting the -s3 flag removes the name of the tag
 	' Using -f means empty values are equal to '-'
 	' Using -n means values are given in numbers when appropriate
-	bCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool\exiftool.exe -n -s3 -f "
+	bCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool\exiftool.exe -s3 -f "
 	For Each Tag in rTags
-		tValue = run_and_get (bCommand & "-" & Tag & " " & FileName)
+		If Tag = "ColorSpace" Then
+			tValue = run_and_get (bCommand & "-" & Tag & " " & FileName)
+		Else
+			tValue = run_and_get (bCommand & "-" & Tag & " " & FileName)
+		End If
 		If tValue <> "-" Then
 			cTags.Add Tag, tValue
 			Wscript.Echo Tag & ": " & tValue
@@ -112,15 +116,16 @@ If Wscript.Arguments.Count <> 3 Then
 	Wscript.Sleep 5000
 	Wscript.Quit
 End If
-FilePath = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool\PKT004560.tif"
-dim oTags, nTags, tKeys, IMInfo, Number, UserName, FileName
+'FilePath = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool\PKT004560.tif"
+'dim oTags, nTags, tKeys, IMInfo, Number, UserName, FileName
 Number = Wscript.Arguments (1)
 UserName = Wscript.Arguments (2)
 FileName = Wscript.Arguments (0)
+FilePath = FileName
 Set fso = CreateObject ("Scripting.FileSystemObject")
 Set f = fso.GetFile (FilePath)
 Set oTags = CheckTags (FilePath)
-Set nTags = CreateObject ("Scripting.Dictionary")
+Set nTags = CreateObject ("Scripting.Dictionary") ' Based on the name of the computer to which the scanner is connected
 Set nMakes = CreateObject ("Scripting.Dictionary")
 nMakes ("PC1240047") = "Mikrotek"
 nMakes ("PC1040198") = "Canon"
@@ -131,10 +136,11 @@ nModels ("PC1040198") = "CanoScan 3200F"
 nModels ("PC0840196") = "8200"
 Set Shell = CreateObject ("WScript.Shell")
 ComputerName = Shell.ExpandEnvironmentStrings ("%computername%")
+Set Shell = nothing
 IMInfo = IMIdentify (FilePath)
 For Each rTag in rTags
 	If rTag = "Software" Then
-		nTags.Add rTag, "Sobki <https://github.com/pieterdp/sobki>"
+		nTags.Add rTag, "Sobki<https://github.com/pieterdp/sobki>"
 	End If
 	If oTags.Item (rTag) <> "" And rTag <> "Software" Then
 		nTags.Add rTag, oTags.Item (rTag)
@@ -163,17 +169,17 @@ For Each rTag in rTags
 				' Don't know this, but convert sets this to 3 (RGB), and convert is used in FastScan to crop stuff
 			Case "ResolutionUnit"
 				nTags.Add rTag, IMInfo (7)
-			Case "ImageUniqueId"
+			Case "ImageUniqueID"
 				nTags.Add rTag, Number
 			Case "ModifyDate"
-				nTags.Add rTag, f.DateLastModified
+				nTags.Add rTag, Replace(f.DateLastModified, " ", "T")
 			Case "CreateDate"
-				nTags.Add rTag, f.DateCreated
+				nTags.Add rTag, Replace(f.DateCreated, " ", "T")
 			Case "ImageDescription"
 				' Leave this empty
 			Case "Artist"
 				' 2 Artists: Original & Scan
-				nTags.Add rTag, "Original: ; Scan: Provinciale Bibliotheek Tolhuis: " & UserName
+				nTags.Add rTag, "Original:;Scan:PBT:" & UserName
 			Case "Make"
 				nTags.Add rTag, nMakes (ComputerName)
 			Case "Model"
@@ -181,6 +187,12 @@ For Each rTag in rTags
 		End Select
 	End If
 Next
-For Each elem In nTags
-	Wscript.Echo elem & " - " & nTags(elem)
+' Add new metadata to the file
+Dim eCommand
+eCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool\exiftool.exe -n "
+Wscript.Echo "Adding metadata to file ... "
+Set Shell = CreateObject ("WScript.Shell")
+For Each nTag in nTags
+	'Wscript.Echo "Writing " & nTag & " to value " & nTags (nTag) & ": " & eCommand & "-" & nTag & "=" & nTags (nTag) & " " & chr(34) & FilePath & chr(34)
+	Shell.Run eCommand & "-" & nTag & "=" & nTags (nTag) & " " & chr(34) & FilePath & chr(34), 0, true
 Next
