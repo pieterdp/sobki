@@ -199,11 +199,12 @@ For Each nTag in nTags
 	'Wscript.Echo "Writing " & nTag & " to value " & nTags (nTag) & ": " & eCommand & "-" & nTag & "=" & nTags (nTag) & " " & chr(34) & FilePath & chr(34)
 	Shell.Run eCommand & "-" & nTag & "=" & chr(34) & nTags (nTag) & chr(34) & " " & chr(34) & FilePath & chr(34), 0, true
 Next
-
+Set Shell = nothing
+Set Shell = CreateObject ("WScript.Shell")
 ' Now split this off in the same directory (to keep them together)
 Wscript.Echo "Splitting off metadata file ... "
-Shell.Run eCommand & " -j --FileSize --ModifyDate --FileModifyDate --FileAccessDate --FilePermissions " & chr(34) & FilePath & chr(34) & " > " & chr(34) & FilePath & ".json" & chr(34), 0, true
+'Wscript.Echo eCommand & " -j --FileSize --ModifyDate --FileModifyDate --FileAccessDate --FilePermissions " & chr(34) & FilePath & chr(34) & " > " & chr(34) & FilePath & ".json" & chr(34), 0, true
+Shell.Run "cmd /c " & eCommand & " -j --FileSize --ModifyDate --FileModifyDate --FileAccessDate --FilePermissions " & chr(34) & FilePath & chr(34) & " > " & chr(34) & FilePath & ".json" & chr(34), 0, true
 
 ' Quit
 Wscript.Echo "Finished."
-Wscript.Quit

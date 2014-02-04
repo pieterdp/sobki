@@ -25,10 +25,11 @@ Else
 End If
 
 Dim fso
-set fso = Wscript.CreateObject ("Scripting.FileSystemObject")
+Set fso = Wscript.CreateObject ("Scripting.FileSystemObject")
+Set shell = WScript.CreateObject("WScript.Shell")
 
 For Each Dir in Arguments
-	If fso.FolderExits (Dir) = True Then
+	If fso.FolderExists (Dir) = True Then
 		Dim objFolder
 		Dim colFiles
 		set objFolder = fso.GetFolder (Dir)
@@ -60,6 +61,15 @@ Sub AddMetadata (aObjFile)
 	Select Case mType
 		Case "init"
 			' Initial creation of metadata => username is in the name of the directory
+			' Split on '-', last item is the username
+			Dim sFolder, mUserName, mFileName, mNumber
+			sFolder = Split (fso.GetParentFolderName (fso.GetParentFolderName (aObjFile.Path)), "-")
+			mUserName = sFolder (3)
+			mFileName = aObjFile.Path
+			mNumber = fso.GetBaseName (mFileName)
+			Wscript.Echo "Scan " & mNumber
+			' Use fastscan-metadata.vbs to actually add the metadata
+			shell.Run "cscript fastscan-metadata.vbs " & chr(34) & mFileName & chr(34) & " " & chr(34) & mNumber & chr(34) & " " & chr(34) & mUserName & chr(34), 0, true
 		Case "final"
 			' JPG's have been created, add metadata to JPGS in JPGS-subfolder
 	End Select
