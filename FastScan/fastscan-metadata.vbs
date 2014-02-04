@@ -117,7 +117,7 @@ If Wscript.Arguments.Count <> 3 Then
 	Wscript.Quit
 End If
 'FilePath = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool\PKT004560.tif"
-'dim oTags, nTags, tKeys, IMInfo, Number, UserName, FileName
+dim oTags, nTags, tKeys, IMInfo, Number, UserName, FileName
 Number = Wscript.Arguments (1)
 UserName = Wscript.Arguments (2)
 FileName = Wscript.Arguments (0)
