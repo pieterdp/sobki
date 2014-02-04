@@ -17,7 +17,7 @@
 '	fastscan-metadata.vbs filename number username
 dim rTags
 'rTags = Array ("IFD0:ImageWidth", "IFD0:ImageHeight", "IFD0:BitsPerSample", "IFD0:Compression", "IFD0:PhotometricInterpretation", "IFD0:ImageDescription", "IFD0:Make", "IFD0:Model", "IFD0:SamplesPerPixel", "IFD0:XResolution", "IFD0:YResolution", "IFD0:ResolutionUnit", "IFD0:Software", "IFD0:ModifyDate", "IFD0:Artist", "ExifIFDColorSpace", "ExifIFDImageUniqueID", "ICC_Profile") ' Required tags
-rTags = Array ("ImageWidth", "ImageHeight", "BitsPerSample", "Compression", "PhotometricInterpretation", "ImageDescription", "Make", "Model", "SamplesPerPixel", "XResolution", "YResolution", "ResolutionUnit", "Software", "ModifyDate", "Artist", "ColorSpace", "ImageUniqueID", "ICC_Profile") ' Required tags
+rTags = Array ("ImageWidth", "ImageHeight", "BitsPerSample", "Compression", "PhotometricInterpretation", "ImageDescription", "Make", "Model", "SamplesPerPixel", "XResolution", "YResolution", "ResolutionUnit", "Software", "ModifyDate", "Artist", "ColorSpace", "ImageUniqueID", "ICC_Profile", "CreateDate") ' Required tags
 
 ' Function to get the output from a command
 ' http://stackoverflow.com/questions/5690134/running-command-line-silently-with-vbscript-and-getting-output
@@ -114,14 +114,29 @@ If Wscript.Arguments.Count <> 3 Then
 End If
 FilePath = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool\PKT004560.tif"
 dim oTags, nTags, tKeys, IMInfo, Number, UserName, FileName
-Number = Wscript.Arguments ()
-UserName = Wscript.Arguments ()
-FileName = Wscript.Arguments ()
+Number = Wscript.Arguments (1)
+UserName = Wscript.Arguments (2)
+FileName = Wscript.Arguments (0)
+Set fso = CreateObject ("Scripting.FileSystemObject")
+Set f = fso.GetFile (FilePath)
 Set oTags = CheckTags (FilePath)
 Set nTags = CreateObject ("Scripting.Dictionary")
+Set nMakes = CreateObject ("Scripting.Dictionary")
+nMakes ("PC1240047") = "Mikrotek"
+nMakes ("PC1040198") = "Canon"
+nMakes ("PC0840196") = "HP"
+Set nModels = CreateObject ("Scripting.Dictionary")
+nModels ("PC1240047") = "ScanMaker 9800 XL+"
+nModels ("PC1040198") = "CanoScan 3200F"
+nModels ("PC0840196") = "8200"
+Set Shell = CreateObject ("WScript.Shell")
+ComputerName = Shell.ExpandEnvironmentStrings ("%computername%")
 IMInfo = IMIdentify (FilePath)
 For Each rTag in rTags
-	If oTags.Item (rTag) <> "" Then
+	If rTag = "Software" Then
+		nTags.Add rTag, "Sobki <https://github.com/pieterdp/sobki>"
+	End If
+	If oTags.Item (rTag) <> "" And rTag <> "Software" Then
 		nTags.Add rTag, oTags.Item (rTag)
 	Else
 		Select Case rTag
@@ -151,11 +166,18 @@ For Each rTag in rTags
 			Case "ImageUniqueId"
 				nTags.Add rTag, Number
 			Case "ModifyDate"
+				nTags.Add rTag, f.DateLastModified
+			Case "CreateDate"
+				nTags.Add rTag, f.DateCreated
 			Case "ImageDescription"
+				' Leave this empty
 			Case "Artist"
+				' 2 Artists: Original & Scan
+				nTags.Add rTag, "Original: ; Scan: Provinciale Bibliotheek Tolhuis: " & UserName
 			Case "Make"
+				nTags.Add rTag, nMakes (ComputerName)
 			Case "Model"
-			Case "Software"
+				nTags.Add rTag, nModels (ComputerName)
 		End Select
 	End If
 Next
