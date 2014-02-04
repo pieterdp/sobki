@@ -16,7 +16,7 @@
 '	Parameters:
 '	fastscan-metadata.vbs filename number username
 dim rTags
-'rTags = Array ("IFD0:ImageWidth", "IFD0:ImageHeight", "IFD0:BitsPerSample", "IFD0:Compression", "IFD0:PhotometricInterpretation", "IFD0:ImageDescription", "IFD0:Make", "IFD0:Model", "IFD0:SamplesPerPixel", "IFD0:XResolution", "IFD0:YResolution", "IFD0:ResolutionUnit", "IFD0:Software", "IFD0:ModifyDate", "IFD0:Artist", "ExifIFDColorSpace", "ExifIFDImageUniqueID", "ICC_Profile") ' Required tags
+'rTags = Array ("IFD0:ImageWidth", "IFD0:ImageHeight", "IFD0:BitsPerSample", "IFD0:Compression", "IFD0:PhotometricInterpretation", "IFD0:ImageDescription", "IFD0:Make", "IFD0:Model", "IFD0:SamplesPerPixel", "IFD0:XResolution", "IFD0:YResolution", "IFD0:ResolutionUnit", "IFD0:Software", "IFD0:ModifyDate", "IFD0:Artist", "ExifIFD:ColorSpace", "ExifIFD:ImageUniqueID", "ICC_Profile") ' Required tags
 rTags = Array ("ImageWidth", "ImageHeight", "BitsPerSample", "Compression", "PhotometricInterpretation", "ImageDescription", "Make", "Model", "SamplesPerPixel", "XResolution", "YResolution", "ResolutionUnit", "Software", "ModifyDate", "Artist", "ColorSpace", "ImageUniqueID", "ICC_Profile", "CreateDate") ' Required tags
 
 ' Function to get the output from a command
@@ -62,7 +62,7 @@ Function CheckTags (FileName)
 		End If
 		If tValue <> "-" Then
 			cTags.Add Tag, tValue
-			Wscript.Echo Tag & ": " & tValue
+			'Wscript.Echo Tag & ": " & tValue
 		End If
 	Next
 	Set CheckTags = cTags
@@ -124,7 +124,6 @@ FileName = Wscript.Arguments (0)
 FilePath = FileName
 Set fso = CreateObject ("Scripting.FileSystemObject")
 Set f = fso.GetFile (FilePath)
-Set oTags = CheckTags (FilePath)
 Set nTags = CreateObject ("Scripting.Dictionary") ' Based on the name of the computer to which the scanner is connected
 Set nMakes = CreateObject ("Scripting.Dictionary")
 nMakes ("PC1240047") = "Mikrotek"
@@ -136,8 +135,12 @@ nModels ("PC1040198") = "CanoScan 3200F"
 nModels ("PC0840196") = "8200"
 Set Shell = CreateObject ("WScript.Shell")
 ComputerName = Shell.ExpandEnvironmentStrings ("%computername%")
+
+' Real app starts about here
+Wscript.Echo "Parsing metadata ... "
 Set Shell = nothing
 IMInfo = IMIdentify (FilePath)
+Set oTags = CheckTags (FilePath)
 For Each rTag in rTags
 	If rTag = "Software" Then
 		nTags.Add rTag, "Sobki <https://github.com/pieterdp/sobki>"
