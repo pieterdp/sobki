@@ -13,6 +13,8 @@
 '    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 '	Script to add as much metadata as possible to TIFF-files (using FADGI-guidelines)
+'	Parameters:
+'	fastscan-metadata.vbs filename number username
 dim rTags
 'rTags = Array ("IFD0:ImageWidth", "IFD0:ImageHeight", "IFD0:BitsPerSample", "IFD0:Compression", "IFD0:PhotometricInterpretation", "IFD0:ImageDescription", "IFD0:Make", "IFD0:Model", "IFD0:SamplesPerPixel", "IFD0:XResolution", "IFD0:YResolution", "IFD0:ResolutionUnit", "IFD0:Software", "IFD0:ModifyDate", "IFD0:Artist", "ExifIFDColorSpace", "ExifIFDImageUniqueID", "ICC_Profile") ' Required tags
 rTags = Array ("ImageWidth", "ImageHeight", "BitsPerSample", "Compression", "PhotometricInterpretation", "ImageDescription", "Make", "Model", "SamplesPerPixel", "XResolution", "YResolution", "ResolutionUnit", "Software", "ModifyDate", "Artist", "ColorSpace", "ImageUniqueID", "ICC_Profile") ' Required tags
@@ -67,27 +69,96 @@ End Function
 ' Collect everything you can, values separated by ;
 ' and then split into a dictionary
 Function IMIdentify (iFileName)
-	Set iValues = CreateObject ("Scripting.Dictionary")
 	Dim iCommand, iFormat
-	iFormat = "-format " & chr(34) & "%[w];%[h];%[colorspace]" & chr(34)
+	iFormat = "-format " & chr(34) & "%[w];%[h];%[colorspace];%[profiles];%[x];%[y];%[C];%[units];%[depth];%[channels]" & chr(34)
 	iCommand = "K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\ImageMagick\identify.exe " & " " & iFormat & " " & chr(34) & iFileName & chr(34)
-	Wscript.Echo iCommand
-	Set IMIdentify = iValues
+	Dim iReturn, iOptions
+	iReturn = run_and_get (iCommand)
+	iOptions = Split (iReturn, ";", -1, 1)
+	IMIdentify = iOptions
+End Function
+
+' Function to convert the colorspace
+' from the tiff-colorspace field to
+' a numeric value
+Function ConvertColorSpace (cSpace)
+	Dim cSpaces, cOutput
+	Set cSpaces = CreateObject ("Scripting.Dictionary")
+	cSpaces ("whiteiszero") = 0
+	cSpaces ("blackiszero") = 1
+	cSpaces ("rgb") = 2
+	cSpaces ("srgb") = 2
+	cSpaces ("rgb palette") = 3
+	cSpaces ("transparency mask") = 4
+	cSpaces ("cmyk") = 5
+	cSpaces ("ycbcr") = 6
+	cSpaces ("cielab") = 8
+	cSpaces ("icclab") = 9
+	cSpaces ("itulab") = 10
+	cSpaces ("color filter array") = 32803
+	cSpaces ("pixar logl") = 32844
+	cSpaces ("pixar logluv") = 32845
+	cSpaces ("libear raw") = 34892
+	cOutput = cSpaces (LCase (cSpace))
+	If cOutput = "" Then
+		cOutput = 2 ' In this case, a sensible default - TODO config file
+	End If
+	ConvertColorSpace = cOutput
 End Function
 
 ' Application below
+If Wscript.Arguments.Count <> 3 Then
+	Wscript.Echo "Opgelet! Te weinig argumenten: cscript fastscan-metadata.vbs bestandsnaam nummer gebruikersnaam. Programma afgesloten."
+	Wscript.Sleep 5000
+	Wscript.Quit
+End If
 FilePath = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool\PKT004560.tif"
-dim oTags, nTags, tKeys
+dim oTags, nTags, tKeys, IMInfo, Number, UserName, FileName
+Number = Wscript.Arguments ()
+UserName = Wscript.Arguments ()
+FileName = Wscript.Arguments ()
 Set oTags = CheckTags (FilePath)
 Set nTags = CreateObject ("Scripting.Dictionary")
-Set IMInfo = IMIdentify (FilePath)
+IMInfo = IMIdentify (FilePath)
 For Each rTag in rTags
 	If oTags.Item (rTag) <> "" Then
 		nTags.Add rTag, oTags.Item (rTag)
 	Else
 		Select Case rTag
 			Case "ImageWidth"
+				nTags.Add rTag, IMInfo (0)
 			Case "ImageHeight"
+				nTags.Add rTag, IMInfo (1)
+			Case "Compression"
+				nTags.Add rTag, IMInfo (6)
+			Case "BitsPerSample"
+				nTags.Add rTag, IMInfo (8)
+			Case "XResolution"
+				nTags.Add rTag, IMInfo (4)
+			Case "YResolution"
+				nTags.Add rTag, IMInfo (5)
+			Case "ColorSpace"
+				nTags.Add rTag, IMInfo (2)
+			Case "ICC_Profile"
+				nTags.Add rTag, IMInfo (3)
+			Case "PhotometicInterpretation"
+				' Convert between this field (int16u) and colorspace (string) -> 2 (RGB) is the default in this case
+				nTags.Add rTag, ConvertColorSpace (IMInfo (2))
+			Case "SamplesPerPixel"
+				' Don't now this, but convert sets this to 3 (RGB), and convert is used in FastScan to crop stuff
+			Case "ResolutionUnit"
+				nTags.Add rTag, IMInfo (7)
+			Case "ImageUniqueId"
+				nTags.Add rTag, Number
+			Case "ModifyDate"
+			Case "ImageDescription"
+			Case "Artist"
+			Case "Make"
+			Case "Model"
+			Case "Software"
 		End Select
 	End If
+Next
+For Each elem In nTags
+	Wscript.Echo elem & " - " & nTags(elem)
 Next
