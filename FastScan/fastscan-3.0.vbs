@@ -220,6 +220,7 @@ do while 1 = 1
 		' Normal case
 		filename = prefix & pad (number) & ".tif"
 	end if
+	unique_id = prefix & pad (number)
 	' Is the filename correct?
 	is_f_correct = u_input ("Automatische bestandsnaam: [" & filename & "]. Correct? ([J]a/[N]ee)")
 	if InStr (LCase (is_f_correct), "n") <> 0 then
@@ -238,6 +239,7 @@ do while 1 = 1
 		End Select
 		filename = prefix & pad (new_number) & new_back & ".tif"
 		number = new_number
+		unique_id = prefix & pad (new_number)
 	end if
 	' Scan
 	Wscript.Echo "Voorbereiden scan ..."
@@ -370,6 +372,8 @@ do while 1 = 1
 '			end if
 ' <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ENDS HERE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	End Select
+	Wscript.Echo "Toevoegen metadata ..."
+	shell.Run "cscript K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\FastScan\fastscan-metadata.vbs " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & unique_id & " " & chr(34) & username & chr(34), 0, true
 	' If this image has a backside & brun = 0
 	' then don't ask questions, but continue the loop
 	' Else, ask questions

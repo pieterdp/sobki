@@ -15,6 +15,8 @@
 '	Script to add as much metadata as possible to TIFF-files (using FADGI-guidelines)
 '	Parameters:
 '	fastscan-metadata.vbs filename number username
+
+'Exif.Image.ImageHistory ?
 dim rTags, evTags
 'rTags = Array ("IFD0:ImageWidth", "IFD0:ImageHeight", "IFD0:BitsPerSample", "IFD0:Compression", "IFD0:PhotometricInterpretation", "IFD0:ImageDescription", "IFD0:Make", "IFD0:Model", "IFD0:SamplesPerPixel", "IFD0:XResolution", "IFD0:YResolution", "IFD0:ResolutionUnit", "IFD0:Software", "IFD0:ModifyDate", "IFD0:Artist", "ExifIFD:ColorSpace", "ExifIFD:ImageUniqueID", "ICC_Profile") ' Required tags
 rTags = Array ("ImageWidth", "ImageHeight", "BitsPerSample", "Compression", "PhotometricInterpretation", "ImageDescription", "Make", "Model", "SamplesPerPixel", "XResolution", "YResolution", "ResolutionUnit", "Software", "ModifyDate", "Artist", "ColorSpace", "ImageUniqueID", "ICC_Profile", "CreateDate") ' Required tags
@@ -121,7 +123,7 @@ End Function
 ' @return string iso-date
 Function ISODate (iDate)
 '2014-02-04T14:27:16+00:00
-	iYear = d_pad (Year (iDate))
+	iYear = Year (iDate)
 	iMonth = d_pad (Month (iDate))
 	iDay = d_pad (Day (iDate))
 	iHour = d_pad (Hour (iDate))
@@ -182,7 +184,7 @@ nMakes ("PC0840196") = "HP"
 Set nModels = CreateObject ("Scripting.Dictionary")
 nModels ("PC1240047") = "ScanMaker 9800 XL+"
 nModels ("PC1040198") = "CanoScan 3200F"
-nModels ("PC0840196") = "8200"
+nModels ("PC0840196") = "Scanjet 8200"
 Set Shell = CreateObject ("WScript.Shell")
 ComputerName = Shell.ExpandEnvironmentStrings ("%computername%")
 
@@ -251,16 +253,40 @@ For Each rTag in aTags
 Next
 ' Add new metadata to the file
 Wscript.Echo "Adding metadata to file ... "
+Dim eCommand
+eCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool\exiftool.exe -n "
 If Use_Fast = true Then
 	Dim wCommand
-	wCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\exiv2\exiv2.exe"
+	wCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\exiv2\exiv2.exe mo -M"
 	Set Shell = CreateObject ("WScript.Shell")
 	For Each nTag in nTags
-		Shell.Run wCommand
+		Select Case nTag
+			Case "ModifyDate"
+			' Folded into Xmp.tiff.DateTime
+				wvCommand = wCommand & chr(34) & "set Xmp.tiff.DateTime " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+			Case "CreateDate"
+			'Exif.Image.DateTimeOriginal
+			'Exif.Photo.DateTimeDigitized
+				wvCommand = wCommand & chr(34) & "set Exif.Photo.DateTimeDigitized " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+			Case "ColorSpace"
+			'Exif.Photo.ColorSpace
+				wvCommand = wCommand & chr(34) & "set Exif.Photo.ColorSpace " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+			Case "ImageUniqueID"
+			'Exif.Photo.ImageUniqueID
+				wvCommand = wCommand & chr(34) & "set Exif.Photo.ImageUniqueID " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+			Case "ICC_Profile"
+			'Exif.Image.InterColorProfile
+				wvCommand = wCommand & chr(34) & "set Exif.Image.InterColorProfile " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+			Case "Software"
+			'Exif.Image.Software & Xmp.tiff.Software - exists multiple times
+				wvCommand = wCommand & chr(34) & "set Exif.Image.Software " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " -M" & chr(34) & "set Xmp.tiff.Software " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+			Case Else
+				wvCommand = wCommand & chr(34) & "set Xmp.tiff." & nTag & " " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+		End Select
+		'Wscript.Echo wvCommand
+		Shell.Run wvCommand, 0, true
 	Next
 Else
-	Dim eCommand
-	eCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool\exiftool.exe -n "
 	Set Shell = CreateObject ("WScript.Shell")
 	For Each nTag in nTags
 		'Wscript.Echo "Writing " & nTag & " to value " & nTags (nTag) '& ": " & eCommand & "-" & nTag & "=" & nTags (nTag) & " " & chr(34) & FilePath & chr(34)
@@ -268,13 +294,15 @@ Else
 	Next
 End If
 
-Wscript.Quit
 Set Shell = nothing
 Set Shell = CreateObject ("WScript.Shell")
 ' Now split this off in the same directory (to keep them together)
 Wscript.Echo "Splitting off metadata file ... "
-'Wscript.Echo eCommand & " -j --FileSize --ModifyDate --FileModifyDate --FileAccessDate --FilePermissions " & chr(34) & FilePath & chr(34) & " > " & chr(34) & FilePath & ".json" & chr(34), 0, true
-Shell.Run "cmd /c " & eCommand & " -j --FileSize --ModifyDate --FileModifyDate --FileAccessDate --FilePermissions " & chr(34) & FilePath & chr(34) & " > " & chr(34) & FilePath & ".json" & chr(34), 0, true
-
+' Writing a more readable format may be done using exiftool (reads an .exv like any other image)
+If Use_Fast = true Then
+	Shell.Run "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\exiv2\exiv2.exe ex -e a " & chr(34) & FilePath & chr(34), 0, true
+	Else
+	Shell.Run "cmd /c " & eCommand & " -j --FileSize --FileModifyDate --FileAccessDate --FilePermissions " & chr(34) & FilePath & chr(34) & " > " & chr(34) & FilePath & ".json" & chr(34), 0, true
+End If
 ' Quit
 Wscript.Echo "Finished."
