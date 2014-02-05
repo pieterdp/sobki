@@ -15,9 +15,16 @@
 '	Script to add as much metadata as possible to TIFF-files (using FADGI-guidelines)
 '	Parameters:
 '	fastscan-metadata.vbs filename number username
-dim rTags
+dim rTags, evTags
 'rTags = Array ("IFD0:ImageWidth", "IFD0:ImageHeight", "IFD0:BitsPerSample", "IFD0:Compression", "IFD0:PhotometricInterpretation", "IFD0:ImageDescription", "IFD0:Make", "IFD0:Model", "IFD0:SamplesPerPixel", "IFD0:XResolution", "IFD0:YResolution", "IFD0:ResolutionUnit", "IFD0:Software", "IFD0:ModifyDate", "IFD0:Artist", "ExifIFD:ColorSpace", "ExifIFD:ImageUniqueID", "ICC_Profile") ' Required tags
 rTags = Array ("ImageWidth", "ImageHeight", "BitsPerSample", "Compression", "PhotometricInterpretation", "ImageDescription", "Make", "Model", "SamplesPerPixel", "XResolution", "YResolution", "ResolutionUnit", "Software", "ModifyDate", "Artist", "ColorSpace", "ImageUniqueID", "ICC_Profile", "CreateDate") ' Required tags
+evTags = Array ("ImageWidth", "ImageLength", "BitsPerSample", "Compression", "PhotometricInterpretation", "ImageDescription", "Make", "Model", "SamplesPerPixel", "XResolution", "YResolution", "ResolutionUnit", "Software", "DateTime", "Artist", "ColorSpace", "ImageUniqueID") ' Required tags
+Use_Fast = true
+If Use_Fast = true Then
+	aTags = evTags
+Else
+	aTags = rTags
+End If
 
 ' Function to get the output from a command
 ' http://stackoverflow.com/questions/5690134/running-command-line-silently-with-vbscript-and-getting-output
@@ -30,14 +37,19 @@ Function run_and_get (command)
 	c_command = "cmd /c " & chr(34) & command & chr(34) & " > " & output
 	shell.Run c_command, 0, true
 	set shell = nothing
-	set file = fso.OpenTextFile (output, 1)
-	text = file.ReadLine
-	file.Close
-	' Remove trailing newline http://blogs.technet.com/b/heyscriptingguy/archive/2005/05/20/how-can-i-remove-the-last-carriage-return-linefeed-in-a-text-file.aspx
-	iTLength = Len (text)
-	iTEnd = Right (iTLength, 2)
-	If iTEnd = vbCrLf Then
-		text = Left (text, iTLength - 2)
+	set f = fso.GetFile (output)
+	If f.Size = 0 Then
+		text = ""
+	Else
+		set file = fso.OpenTextFile (output, 1)
+		text = file.ReadLine
+		file.Close
+		' Remove trailing newline http://blogs.technet.com/b/heyscriptingguy/archive/2005/05/20/how-can-i-remove-the-last-carriage-return-linefeed-in-a-text-file.aspx
+		iTLength = Len (text)
+		iTEnd = Right (iTLength, 2)
+		If iTEnd = vbCrLf Then
+			text = Left (text, iTLength - 2)
+		End If
 	End If
 	run_and_get = text
 End Function
@@ -56,9 +68,9 @@ Function CheckTags (FileName)
 	bCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool\exiftool.exe -s3 -f "
 	For Each Tag in rTags
 		If Tag = "ColorSpace" Then
-			tValue = run_and_get (bCommand & "-" & Tag & " " & FileName)
+			tValue = run_and_get (bCommand & "-" & Tag & " " & chr(34) & FileName & chr(34))
 		Else
-			tValue = run_and_get (bCommand & "-" & Tag & " " & FileName)
+			tValue = run_and_get (bCommand & "-" & Tag & " " & chr(34) & FileName & chr(34))
 		End If
 		If tValue <> "-" Then
 			cTags.Add Tag, tValue
@@ -66,6 +78,23 @@ Function CheckTags (FileName)
 		End If
 	Next
 	Set CheckTags = cTags
+End Function
+
+' Function to read all available tags using exiv2.exe
+' which should be way faster than exiftool.exe
+' @param string filename (full path)
+Function ExivCheckTags (eFileName)
+	dim eTags, eCommand
+	Set eTags = CreateObject ("Scripting.Dictionary")
+	eCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\exiv2\exiv2.exe pr -P v -g "
+	For Each eTag in evTags
+		eValue = run_and_get (eCommand & chr(34) & eTag & chr(34) & " " & chr(34) & FileName & chr(34))
+		If eValue <> "" Then
+			eTags.Add eTag, eValue
+		'	Wscript.Echo eTag & ": " & eValue
+		End If
+	Next
+	Set ExivCheckTags = eTags
 End Function
 
 ' Function to us imagemagick to get a lot of info
@@ -80,6 +109,27 @@ Function IMIdentify (iFileName)
 	iReturn = run_and_get (iCommand)
 	iOptions = Split (iReturn, ";", -1, 1)
 	IMIdentify = iOptions
+End Function
+
+' Function to pad the date
+Function d_pad (d)
+	d_pad = Right (String (2, "0") & d, 2)
+End Function
+
+' Convert a date to ISO8601
+' @param string date
+' @return string iso-date
+Function ISODate (iDate)
+'2014-02-04T14:27:16+00:00
+	iYear = d_pad (Year (iDate))
+	iMonth = d_pad (Month (iDate))
+	iDay = d_pad (Day (iDate))
+	iHour = d_pad (Hour (iDate))
+	iMin = d_pad (Minute (iDate))
+	iSec = d_pad (Second (iDate))
+	iTZ = "+01:00"
+	iISODate = iYear & "-" & iMonth & "-" & iDay & "T" & iHour & ":" & iMin & ":" & iSec & iTZ
+	ISODate = iISODate
 End Function
 
 ' Function to convert the colorspace
@@ -140,10 +190,15 @@ ComputerName = Shell.ExpandEnvironmentStrings ("%computername%")
 Wscript.Echo "Parsing metadata ... "
 Set Shell = nothing
 IMInfo = IMIdentify (FilePath)
-Set oTags = CheckTags (FilePath)
-For Each rTag in rTags
+If Use_Fast = true Then
+	Set oTags = ExivCheckTags (FilePath)
+Else
+	Set oTags = CheckTags (FilePath)
+End If
+'Set oTags = CheckTags (FilePath)
+For Each rTag in aTags
 	If rTag = "Software" Then
-		nTags.Add rTag, "Sobki <https://github.com/pieterdp/sobki>"
+		nTags.Add rTag, "Sobki"
 	End If
 	If oTags.Item (rTag) <> "" And rTag <> "Software" Then
 		nTags.Add rTag, oTags.Item (rTag)
@@ -152,6 +207,8 @@ For Each rTag in rTags
 			Case "ImageWidth"
 				nTags.Add rTag, IMInfo (0)
 			Case "ImageHeight"
+				nTags.Add rTag, IMInfo (1)
+			Case "ImageLength"
 				nTags.Add rTag, IMInfo (1)
 			Case "Compression"
 				nTags.Add rTag, IMInfo (6)
@@ -175,9 +232,11 @@ For Each rTag in rTags
 			Case "ImageUniqueID"
 				nTags.Add rTag, Number
 			Case "ModifyDate"
-				nTags.Add rTag, f.DateLastModified
+				nTags.Add rTag, ISODate (f.DateLastModified)
 			Case "CreateDate"
-				nTags.Add rTag, f.DateCreated
+				nTags.Add rTag, ISODate (f.DateCreated)
+			Case "DateTime"
+				nTags.Add rTag, ISODate (f.DateLastModified)
 			Case "ImageDescription"
 				' Leave this empty
 			Case "Artist"
@@ -191,14 +250,25 @@ For Each rTag in rTags
 	End If
 Next
 ' Add new metadata to the file
-Dim eCommand
-eCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool\exiftool.exe -n "
 Wscript.Echo "Adding metadata to file ... "
-Set Shell = CreateObject ("WScript.Shell")
-For Each nTag in nTags
-	'Wscript.Echo "Writing " & nTag & " to value " & nTags (nTag) & ": " & eCommand & "-" & nTag & "=" & nTags (nTag) & " " & chr(34) & FilePath & chr(34)
-	Shell.Run eCommand & "-" & nTag & "=" & chr(34) & nTags (nTag) & chr(34) & " " & chr(34) & FilePath & chr(34), 0, true
-Next
+If Use_Fast = true Then
+	Dim wCommand
+	wCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\exiv2\exiv2.exe"
+	Set Shell = CreateObject ("WScript.Shell")
+	For Each nTag in nTags
+		Shell.Run wCommand
+	Next
+Else
+	Dim eCommand
+	eCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool\exiftool.exe -n "
+	Set Shell = CreateObject ("WScript.Shell")
+	For Each nTag in nTags
+		'Wscript.Echo "Writing " & nTag & " to value " & nTags (nTag) '& ": " & eCommand & "-" & nTag & "=" & nTags (nTag) & " " & chr(34) & FilePath & chr(34)
+		Shell.Run eCommand & "-" & nTag & "=" & chr(34) & nTags (nTag) & chr(34) & " " & chr(34) & FilePath & chr(34), 0, true
+	Next
+End If
+
+Wscript.Quit
 Set Shell = nothing
 Set Shell = CreateObject ("WScript.Shell")
 ' Now split this off in the same directory (to keep them together)

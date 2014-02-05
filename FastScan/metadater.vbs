@@ -62,14 +62,16 @@ Sub AddMetadata (aObjFile)
 		Case "init"
 			' Initial creation of metadata => username is in the name of the directory
 			' Split on '-', last item is the username
-			Dim sFolder, mUserName, mFileName, mNumber
-			sFolder = Split (fso.GetParentFolderName (fso.GetParentFolderName (aObjFile.Path)), "-")
-			mUserName = sFolder (3)
-			mFileName = aObjFile.Path
-			mNumber = fso.GetBaseName (mFileName)
-			Wscript.Echo "Scan " & mNumber
-			' Use fastscan-metadata.vbs to actually add the metadata
-			shell.Run "cscript fastscan-metadata.vbs " & chr(34) & mFileName & chr(34) & " " & chr(34) & mNumber & chr(34) & " " & chr(34) & mUserName & chr(34), 0, true
+			If LCase (fso.GetExtensionName (aObjFile.Path)) = "tiff" or LCase (fso.GetExtensionName (aObjFile.Path)) = "tif" Then
+				Dim sFolder, mUserName, mFileName, mNumber
+				sFolder = Split (fso.GetParentFolderName (fso.GetParentFolderName (aObjFile.Path)), "-")
+				mUserName = sFolder (3)
+				mFileName = aObjFile.Path
+				mNumber = Left (fso.GetBaseName (mFileName), 9)
+				Wscript.Echo "Scan " & mNumber
+				' Use fastscan-metadata.vbs to actually add the metadata
+				shell.Run "cscript fastscan-metadata.vbs " & chr(34) & mFileName & chr(34) & " " & chr(34) & mNumber & chr(34) & " " & chr(34) & mUserName & chr(34), 0, true
+			End If
 		Case "final"
 			' JPG's have been created, add metadata to JPGS in JPGS-subfolder
 	End Select
