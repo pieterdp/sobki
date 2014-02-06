@@ -162,17 +162,18 @@ Function ConvertColorSpace (cSpace)
 	ConvertColorSpace = cOutput
 End Function
 
-' Application below
-If Wscript.Arguments.Count <> 3 Then
-	Wscript.Echo "Opgelet! Te weinig argumenten: cscript fastscan-metadata.vbs bestandsnaam nummer gebruikersnaam. Programma afgesloten."
+' <<<<<<<<<<<<<<<<< Application >>>>>>>>>>>>>>>>>>
+If Wscript.Arguments.Count < 4 Then
+	Wscript.Echo "Opgelet! Te weinig argumenten: cscript fastscan-metadata.vbs type bestandsnaam nummer gebruikersnaam. Programma afgesloten."
 	Wscript.Sleep 5000
 	Wscript.Quit
 End If
-'FilePath = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool\PKT004560.tif"
-dim oTags, nTags, tKeys, IMInfo, Number, UserName, FileName
-Number = Wscript.Arguments (1)
-UserName = Wscript.Arguments (2)
-FileName = Wscript.Arguments (0)
+
+dim oTags, nTags, tKeys, IMInfo, Number, UserName, FileName, mType
+Number = Wscript.Arguments (2)
+UserName = Wscript.Arguments (3)
+FileName = Wscript.Arguments (1)
+mType = Wscript.Arguments (0) ' Type: either write metadata to an external file ("divorce") or enter the information from that file back into the image ("marry")
 FilePath = FileName
 Set fso = CreateObject ("Scripting.FileSystemObject")
 Set f = fso.GetFile (FilePath)
@@ -190,119 +191,198 @@ ComputerName = Shell.ExpandEnvironmentStrings ("%computername%")
 
 ' Real app starts about here
 Wscript.Echo "Parsing metadata ... "
-Set Shell = nothing
-IMInfo = IMIdentify (FilePath)
-If Use_Fast = true Then
-	Set oTags = ExivCheckTags (FilePath)
-Else
-	Set oTags = CheckTags (FilePath)
-End If
-'Set oTags = CheckTags (FilePath)
-For Each rTag in aTags
-	If rTag = "Software" Then
-		nTags.Add rTag, "Sobki"
-	End If
-	If oTags.Item (rTag) <> "" And rTag <> "Software" Then
-		nTags.Add rTag, oTags.Item (rTag)
-	Else
-		Select Case rTag
-			Case "ImageWidth"
-				nTags.Add rTag, IMInfo (0)
-			Case "ImageHeight"
-				nTags.Add rTag, IMInfo (1)
-			Case "ImageLength"
-				nTags.Add rTag, IMInfo (1)
-			Case "Compression"
-				nTags.Add rTag, IMInfo (6)
-			Case "BitsPerSample"
-				nTags.Add rTag, IMInfo (8)
-			Case "XResolution"
-				nTags.Add rTag, IMInfo (4)
-			Case "YResolution"
-				nTags.Add rTag, IMInfo (5)
-			Case "ColorSpace"
-				nTags.Add rTag, IMInfo (2)
-			Case "ICC_Profile"
-				nTags.Add rTag, IMInfo (3)
-			Case "PhotometicInterpretation"
-				' Convert between this field (int16u) and colorspace (string) -> 2 (RGB) is the default in this case
-				nTags.Add rTag, ConvertColorSpace (IMInfo (2))
-			Case "SamplesPerPixel"
-				' Don't know this, but convert sets this to 3 (RGB), and convert is used in FastScan to crop stuff
-			Case "ResolutionUnit"
-				nTags.Add rTag, IMInfo (7)
-			Case "ImageUniqueID"
-				nTags.Add rTag, Number
-			Case "ModifyDate"
-				nTags.Add rTag, ISODate (f.DateLastModified)
-			Case "CreateDate"
-				nTags.Add rTag, ISODate (f.DateCreated)
-			Case "DateTime"
-				nTags.Add rTag, ISODate (f.DateLastModified)
-			Case "ImageDescription"
-				' Leave this empty
-			Case "Artist"
-				' 2 Artists: Original & Scan
-				nTags.Add rTag, "Original: ; Scan: PBT: " & UserName
-			Case "Make"
-				nTags.Add rTag, nMakes (ComputerName)
-			Case "Model"
-				nTags.Add rTag, nModels (ComputerName)
-		End Select
-	End If
-Next
-' Add new metadata to the file
-Wscript.Echo "Adding metadata to file ... "
-Dim eCommand
-eCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool\exiftool.exe -n "
-If Use_Fast = true Then
-	Dim wCommand
-	wCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\exiv2\exiv2.exe mo -M"
-	Set Shell = CreateObject ("WScript.Shell")
-	For Each nTag in nTags
-		Select Case nTag
-			Case "ModifyDate"
-			' Folded into Xmp.tiff.DateTime
-				wvCommand = wCommand & chr(34) & "set Xmp.tiff.DateTime " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
-			Case "CreateDate"
-			'Exif.Image.DateTimeOriginal
-			'Exif.Photo.DateTimeDigitized
-				wvCommand = wCommand & chr(34) & "set Exif.Photo.DateTimeDigitized " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
-			Case "ColorSpace"
-			'Exif.Photo.ColorSpace
-				wvCommand = wCommand & chr(34) & "set Exif.Photo.ColorSpace " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
-			Case "ImageUniqueID"
-			'Exif.Photo.ImageUniqueID
-				wvCommand = wCommand & chr(34) & "set Exif.Photo.ImageUniqueID " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
-			Case "ICC_Profile"
-			'Exif.Image.InterColorProfile
-				wvCommand = wCommand & chr(34) & "set Exif.Image.InterColorProfile " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
-			Case "Software"
-			'Exif.Image.Software & Xmp.tiff.Software - exists multiple times
-				wvCommand = wCommand & chr(34) & "set Exif.Image.Software " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " -M" & chr(34) & "set Xmp.tiff.Software " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
-			Case Else
-				wvCommand = wCommand & chr(34) & "set Xmp.tiff." & nTag & " " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
-		End Select
-		'Wscript.Echo wvCommand
-		Shell.Run wvCommand, 0, true
-	Next
-Else
-	Set Shell = CreateObject ("WScript.Shell")
-	For Each nTag in nTags
-		'Wscript.Echo "Writing " & nTag & " to value " & nTags (nTag) '& ": " & eCommand & "-" & nTag & "=" & nTags (nTag) & " " & chr(34) & FilePath & chr(34)
-		Shell.Run eCommand & "-" & nTag & "=" & chr(34) & nTags (nTag) & chr(34) & " " & chr(34) & FilePath & chr(34), 0, true
-	Next
-End If
+Select Case mType
+	Case "marry"
+		' Read all info from the external exv-file and compare it with the metadata in the image
+		' If it's different, keep the data from the image
+		' If it's the same, do nothing
+		' If the metadata from the image is empty, add that from the file
+		Dim ckiTags, ckfTags, ckcTags
+		Set ckcTags = CreateObject ("Scripting.Dictionary")
+		' Metadata from the image
+		If Use_Fast = true Then
+			Set ckiTags = ExivCheckTags (FilePath)
+		Else
+			Set ckiTags = CheckTags (FilePath)
+		End If
+		' Metadata from the file
+		If Wscript.Arguments.Count <> 5 Then ' optional 5th argument gives the location of the exv-file
+			ckFileName = fso.GetAbsolutePathName (fso.GetParentFolderName (FilePath)) & "\" & fso.GetBaseName (FilePath) & ".exv"
+		Else
+			ckFileName = Wscript.Arguments (4)
+		End If
+		If Use_Fast = true Then
+			Set ckfTags = ExivCheckTags (ckFileName)
+		Else
+			Set ckfTags = CheckTags (ckFileName)
+		End If
+		For Each ckrTag in aTags
+			If ckiTags.Item (ckrTag) = "" Then
+				ckcTags.Add ckrTag, ckfTags.Item (ckrTag)
+			ElseIf ckiTags.Item (ckrTag) <> ckfTags.Item (ckrTag) Then
+				ckcTags.Add ckrTag, ckiTags.Item (ckrTag)
+			Else
+				ckcTags.Add ckrTag, ckiTags.Item (ckrTag)
+			End If
+		Next
+		Wscript.Echo "Terugkoppelen metadata aan bestanden ..."
+		If Use_Fast = true Then
+			Dim wcCommand
+			wcCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\exiv2\exiv2.exe mo -M"
+			Set Shell = CreateObject ("WScript.Shell")
+			For Each ckcTag in ckcTags
+				Select Case ckcTag
+					Case "ModifyDate"
+					' Folded into Xmp.tiff.DateTime
+						wvcCommand = wcCommand & chr(34) & "set Xmp.tiff.DateTime " & chr(39) & ckcTags (ckcTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+					Case "CreateDate"
+					'Exif.Image.DateTimeOriginal
+					'Exif.Photo.DateTimeDigitized
+						wvcCommand = wcCommand & chr(34) & "set Exif.Photo.DateTimeDigitized " & chr(39) & ckcTags (ckcTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+					Case "ColorSpace"
+					'Exif.Photo.ColorSpace
+						wvcCommand = wcCommand & chr(34) & "set Exif.Photo.ColorSpace " & chr(39) & ckcTags (ckcTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+					Case "ImageUniqueID"
+					'Exif.Photo.ImageUniqueID
+						wvcCommand = wcCommand & chr(34) & "set Exif.Photo.ImageUniqueID " & chr(39) & ckcTags (ckcTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+					Case "ICC_Profile"
+					'Exif.Image.InterColorProfile
+						wvcCommand = wcCommand & chr(34) & "set Exif.Image.InterColorProfile " & chr(39) & ckcTags (ckcTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+					Case "Software"
+					'Exif.Image.Software & Xmp.tiff.Software - exists multiple times
+						wvcCommand = wcCommand & chr(34) & "set Exif.Image.Software " & chr(39) & ckcTags (ckcTag) & chr(39) & chr(34) & " -M" & chr(34) & "set Xmp.tiff.Software " & chr(39) & ckcTags (ckcTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+					Case Else
+						wvcCommand = wcCommand & chr(34) & "set Xmp.tiff." & ckcTag & " " & chr(39) & ckcTags (ckcTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+				End Select
+				'Wscript.Echo wvcCommand
+				Shell.Run wvcCommand, 0, true
+			Next
+		Else
+			Dim ecCommand
+			ecCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool\exiftool.exe -n "
+			Set Shell = CreateObject ("WScript.Shell")
+			For Each ckcTag in ckcTags
+				'Wscript.Echo "Writing " & nTag & " to value " & nTags (nTag) '& ": " & eCommand & "-" & nTag & "=" & nTags (nTag) & " " & chr(34) & FilePath & chr(34)
+				Shell.Run ecCommand & "-" & ckcTag & "=" & chr(34) & ckcTags (ckcTag) & chr(34) & " " & chr(34) & FilePath & chr(34), 0, true
+			Next
+		End If
+	Case "divorce"
+		' Get all metadata from the original file, add to that the system metadata and add that to the file
+		' Create an external exv-file (with the same filename) to keep a backup of said metadata
+		Set Shell = nothing
+		IMInfo = IMIdentify (FilePath)
+		If Use_Fast = true Then
+			Set oTags = ExivCheckTags (FilePath)
+		Else
+			Set oTags = CheckTags (FilePath)
+		End If
+		'Set oTags = CheckTags (FilePath)
+		For Each rTag in aTags
+			If rTag = "Software" Then
+				nTags.Add rTag, "Sobki"
+			End If
+			If oTags.Item (rTag) <> "" And rTag <> "Software" Then
+				nTags.Add rTag, oTags.Item (rTag)
+			Else
+				Select Case rTag
+					Case "ImageWidth"
+						nTags.Add rTag, IMInfo (0)
+					Case "ImageHeight"
+						nTags.Add rTag, IMInfo (1)
+					Case "ImageLength"
+						nTags.Add rTag, IMInfo (1)
+					Case "Compression"
+						nTags.Add rTag, IMInfo (6)
+					Case "BitsPerSample"
+						nTags.Add rTag, IMInfo (8)
+					Case "XResolution"
+						nTags.Add rTag, IMInfo (4)
+					Case "YResolution"
+						nTags.Add rTag, IMInfo (5)
+					Case "ColorSpace"
+						nTags.Add rTag, IMInfo (2)
+					Case "ICC_Profile"
+						nTags.Add rTag, IMInfo (3)
+					Case "PhotometicInterpretation"
+						' Convert between this field (int16u) and colorspace (string) -> 2 (RGB) is the default in this case
+						nTags.Add rTag, ConvertColorSpace (IMInfo (2))
+					Case "SamplesPerPixel"
+						' Don't know this, but convert sets this to 3 (RGB), and convert is used in FastScan to crop stuff
+					Case "ResolutionUnit"
+						nTags.Add rTag, IMInfo (7)
+					Case "ImageUniqueID"
+						nTags.Add rTag, Number
+					Case "ModifyDate"
+						nTags.Add rTag, ISODate (f.DateLastModified)
+					Case "CreateDate"
+						nTags.Add rTag, ISODate (f.DateCreated)
+					Case "DateTime"
+						nTags.Add rTag, ISODate (f.DateLastModified)
+					Case "ImageDescription"
+						' Leave this empty
+					Case "Artist"
+						' 2 Artists: Original & Scan
+						nTags.Add rTag, "Original: ; Scan: PBT: " & UserName
+					Case "Make"
+						nTags.Add rTag, nMakes (ComputerName)
+					Case "Model"
+						nTags.Add rTag, nModels (ComputerName)
+				End Select
+			End If
+		Next
+		' Add new metadata to the file
+		Wscript.Echo "Adding metadata to file ... "
+		Dim eCommand
+		eCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool\exiftool.exe -n "
+		If Use_Fast = true Then
+			Dim wCommand
+			wCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\exiv2\exiv2.exe mo -M"
+			Set Shell = CreateObject ("WScript.Shell")
+			For Each nTag in nTags
+				Select Case nTag
+					Case "ModifyDate"
+					' Folded into Xmp.tiff.DateTime
+						wvCommand = wCommand & chr(34) & "set Xmp.tiff.DateTime " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+					Case "CreateDate"
+					'Exif.Image.DateTimeOriginal
+					'Exif.Photo.DateTimeDigitized
+						wvCommand = wCommand & chr(34) & "set Exif.Photo.DateTimeDigitized " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+					Case "ColorSpace"
+					'Exif.Photo.ColorSpace
+						wvCommand = wCommand & chr(34) & "set Exif.Photo.ColorSpace " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+					Case "ImageUniqueID"
+					'Exif.Photo.ImageUniqueID
+						wvCommand = wCommand & chr(34) & "set Exif.Photo.ImageUniqueID " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+					Case "ICC_Profile"
+					'Exif.Image.InterColorProfile
+						wvCommand = wCommand & chr(34) & "set Exif.Image.InterColorProfile " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+					Case "Software"
+					'Exif.Image.Software & Xmp.tiff.Software - exists multiple times
+						wvCommand = wCommand & chr(34) & "set Exif.Image.Software " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " -M" & chr(34) & "set Xmp.tiff.Software " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+					Case Else
+						wvCommand = wCommand & chr(34) & "set Xmp.tiff." & nTag & " " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+				End Select
+				'Wscript.Echo wvCommand
+				Shell.Run wvCommand, 0, true
+			Next
+		Else
+			Set Shell = CreateObject ("WScript.Shell")
+			For Each nTag in nTags
+				'Wscript.Echo "Writing " & nTag & " to value " & nTags (nTag) '& ": " & eCommand & "-" & nTag & "=" & nTags (nTag) & " " & chr(34) & FilePath & chr(34)
+				Shell.Run eCommand & "-" & nTag & "=" & chr(34) & nTags (nTag) & chr(34) & " " & chr(34) & FilePath & chr(34), 0, true
+			Next
+		End If
 
-Set Shell = nothing
-Set Shell = CreateObject ("WScript.Shell")
-' Now split this off in the same directory (to keep them together)
-Wscript.Echo "Splitting off metadata file ... "
-' Writing a more readable format may be done using exiftool (reads an .exv like any other image)
-If Use_Fast = true Then
-	Shell.Run "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\exiv2\exiv2.exe ex -e a " & chr(34) & FilePath & chr(34), 0, true
-	Else
-	Shell.Run "cmd /c " & eCommand & " -j --FileSize --FileModifyDate --FileAccessDate --FilePermissions " & chr(34) & FilePath & chr(34) & " > " & chr(34) & FilePath & ".json" & chr(34), 0, true
-End If
+		Set Shell = nothing
+		Set Shell = CreateObject ("WScript.Shell")
+		' Now split this off in the same directory (to keep them together)
+		Wscript.Echo "Splitting off metadata file ... "
+		' Writing a more readable format may be done using exiftool (reads an .exv like any other image)
+		If Use_Fast = true Then
+			Shell.Run "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\exiv2\exiv2.exe ex -e a " & chr(34) & FilePath & chr(34), 0, true
+			Else
+			Shell.Run "cmd /c " & eCommand & " -j --FileSize --FileModifyDate --FileAccessDate --FilePermissions " & chr(34) & FilePath & chr(34) & " > " & chr(34) & FilePath & ".json" & chr(34), 0, true
+		End If
+End Select
 ' Quit
 Wscript.Echo "Finished."

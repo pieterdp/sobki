@@ -19,7 +19,7 @@
 If Wscript.Arguments.Count = 0 Or Wscript.Arguments.Count = 1 Then
 	'Arguments = Array ("L:\PBC\Beeldbank\Postkaarten\98_RAW_scans") ' Default
 	Wscript.Echo "Usage: csscript metadater.vbs type dir1[ dir2 ...]"
-	Arguments = Array (InputBox ("Gelieve de map met scans in te geven (tiffs):"))
+	Wscript.Quit
 Else
 	set Arguments = Wscript.Arguments
 End If
@@ -58,21 +58,39 @@ End Sub
 Sub AddMetadata (aObjFile)
 	Dim mType
 	mType = Wscript.Arguments (0)
+	Dim sFolder, mUserName, mFileName, mNumber
+	sFolder = Split (fso.GetParentFolderName (fso.GetParentFolderName (aObjFile.Path)), "-")
+	'mUserName = sFolder (3)
+	mUserName = shell.ExpandEnvironmentStrings ("%username%")
+	mFileName = aObjFile.Path
+	mNumber = Left (fso.GetBaseName (mFileName), 9)
+	Wscript.Echo "Scan " & mNumber
 	Select Case mType
 		Case "init"
 			' Initial creation of metadata => username is in the name of the directory
 			' Split on '-', last item is the username
 			If LCase (fso.GetExtensionName (aObjFile.Path)) = "tiff" or LCase (fso.GetExtensionName (aObjFile.Path)) = "tif" Then
-				Dim sFolder, mUserName, mFileName, mNumber
-				sFolder = Split (fso.GetParentFolderName (fso.GetParentFolderName (aObjFile.Path)), "-")
-				mUserName = sFolder (3)
-				mFileName = aObjFile.Path
-				mNumber = Left (fso.GetBaseName (mFileName), 9)
-				Wscript.Echo "Scan " & mNumber
 				' Use fastscan-metadata.vbs to actually add the metadata
-				shell.Run "cscript fastscan-metadata.vbs " & chr(34) & mFileName & chr(34) & " " & chr(34) & mNumber & chr(34) & " " & chr(34) & mUserName & chr(34), 0, true
+				shell.Run "cscript fastscan-metadata.vbs divorce " & chr(34) & mFileName & chr(34) & " " & chr(34) & mNumber & chr(34) & " " & chr(34) & mUserName & chr(34), 0, true
 			End If
-		Case "final"
+		Case "marry"
 			' JPG's have been created, add metadata to JPGS in JPGS-subfolder
+			exvSame = fso.GetAbsolutePathName (fso.GetParentFolderName (aObjFile.Path)) & "\" & fso.GetBaseName (aObjFile.Path) & ".exv"
+			If LCase (fso.GetExtensionName (aObjFile.Path)) = "jpeg" or LCase (fso.GetExtensionName (aObjFile.Path)) = "jpg" Then
+				' EXV-files can be in the same directory of in the directory one level above
+			'	Dim exvSame, exvParent, exvFile
+			'	exvParent = fso.GetAbsolutePathName (fso.GetParentFolderName (fso.GetParentFolderName (aObjFile.Path))) & "\" & fso.GetBaseName (aObjFile.Path) & ".exv"
+			'	If fso.FileExists (exvSame) Then
+			'		exvFile = exvSame
+			'	Else
+			'		exvFile = exvParent
+			'	End If
+			'	shell.Run "cscript fastscan-metadata.vbs marry " & chr(34) & mFileName & chr(34) & " " & chr(34) & mNumber & chr(34) & " " & chr(34) & mUserName & chr(34) & " " & chr(34) & exvFile & chr(34), 0, true
+			'	Wscript.Echo "cscript fastscan-metadata.vbs marry " & chr(34) & mFileName & chr(34) & " " & chr(34) & mNumber & chr(34) & " " & chr(34) & mUserName & chr(34) & " " & chr(34) & exvFile & chr(34)
+			'	Wscript.Quit
+			ElseIf LCase (fso.GetExtensionName (aObjFile.Path)) = "tiff" or LCase (fso.GetExtensionName (aObjFile.Path)) = "tif" Then
+				exvFile = exvSame
+				shell.Run "cscript fastscan-metadata.vbs marry " & chr(34) & mFileName & chr(34) & " " & chr(34) & mNumber & chr(34) & " " & chr(34) & mUserName & chr(34) & " " & chr(34) & exvFile & chr(34), 0, true
+			End If	
 	End Select
 End Sub
