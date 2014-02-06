@@ -16,12 +16,16 @@
 '	Parameters:
 '	meta-dater.vbs dir
 
+Dim mType
 If Wscript.Arguments.Count = 0 Or Wscript.Arguments.Count = 1 Then
 	'Arguments = Array ("L:\PBC\Beeldbank\Postkaarten\98_RAW_scans") ' Default
 	Wscript.Echo "Usage: csscript metadater.vbs type dir1[ dir2 ...]"
-	Wscript.Quit
+	'Arguments = Array (InputBox ("Gelieve de map met scans in te geven:"))
+	mType = InputBox ("Geef het type in (marry/init): ")
+	Arguments = Array (InputBox ("Gelieve de map met scans in te geven:"))
 Else
 	set Arguments = Wscript.Arguments
+	mType = Wscript.Arguments (0)
 End If
 
 Dim fso
@@ -56,8 +60,6 @@ Sub folder_walk (objFolder)
 End Sub
 
 Sub AddMetadata (aObjFile)
-	Dim mType
-	mType = Wscript.Arguments (0)
 	Dim sFolder, mUserName, mFileName, mNumber
 	sFolder = Split (fso.GetParentFolderName (fso.GetParentFolderName (aObjFile.Path)), "-")
 	'mUserName = sFolder (3)
