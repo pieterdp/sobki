@@ -15,31 +15,24 @@
 '
 ' This script allows the creation of the configuration file for fastscan-3.0
 
-config_default = array ("##", "# Configuratiebestand voor FastScan", "# Vorm: key='value'", "##", "##", "# Output-dir: in die map worden mappen aangemaakt met volgend masker:", "# jjjj-mm-dd-%user%", "##", "base_output_dir='K:\Cultuur\PBC\Beeldbank\99sys_SCANS'")
+config_default = array ("##", "# Configuratiebestand voor FastScan", "# Vorm: key='value'", "##", "##", "# Output-dir: in die map worden mappen aangemaakt met volgend masker:", "# jjjj-mm-dd-%user%", "##", "base_output_dir='K:\Cultuur\PBC\Beeldbank\99sys_SCANS'", "fastscan_dir='K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\FastScan'", "iview_dir='C:\Program Files\IrfanView'", "im_dir='K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\ImageMagick'")
 
 set shell = CreateObject ("WScript.Shell")
 set fso = CreateObject ("Scripting.FileSystemObject")
-username = shell.ExpandEnvironmentStrings ("%USERNAME%")
-config_path = "C:\Users\" & username & "\Applicaties\FastScan"
+config_path = shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\FastScan"
 
 ' Directory checking
-if fso.FolderExists ("C:\Users") <> True then
-	fso.CreateFolder ("C:\Users")
+if fso.FolderExists (shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties") <> True then
+	fso.CreateFolder (shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties")
 end if
-if fso.FolderExists ("C:\Users\" & username) <> True then
-	fso.CreateFolder ("C:\Users" & username)
+if fso.FolderExists (shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\FastScan") <> True then
+	fso.CreateFolder (shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\FastScan")
 end if
-if fso.FolderExists ("C:\Users\" & username & "\Applicaties") <> True then
-	fso.CreateFolder ("C:\Users" & username & "\Applicaties")
-end if
-if fso.FolderExists ("C:\Users\" & username & "\Applicaties\FastScan") <> True then
-	fso.CreateFolder ("C:\Users" & username & "\Applicaties\FastScan")
-end if
-if fso.FolderExists ("C:\Users\" & username & "\Applicaties\FastScan\log") <> True then
-	fso.CreateFolder ("C:\Users" & username & "\Applicaties\FastScan\log")
+if fso.FolderExists (shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\FastScan\log") <> True then
+	fso.CreateFolder (shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\FastScan\log")
 end if
 
-config_file = config_path & "\config.txt"
+config_file = config_path & "\tt_config.txt"
 set ObjConfig_file = fso.OpenTextFile (config_file, 2, true)
 For Each line in config_default
 	ObjConfig_file.WriteLine (line)
