@@ -32,7 +32,7 @@ if fso.FolderExists (shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applic
 	fso.CreateFolder (shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\FastScan\log")
 end if
 
-config_file = config_path & "\tt_config.txt"
+config_file = config_path & "\config.txt"
 set ObjConfig_file = fso.OpenTextFile (config_file, 2, true)
 For Each line in config_default
 	ObjConfig_file.WriteLine (line)

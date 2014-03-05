@@ -34,6 +34,19 @@ Function read_config_value (line, pattern)
 	end if
 End Function
 
+Function read_config_file (pattern, file)
+	set ObjConfig_file = fso.OpenTextFile (file)
+	dim line
+	do while not ObjConfig_file.AtEndOfStream
+		line = ObjConfig_file.ReadLine ()
+		if read_config_value (line, pattern) <> Empty then
+			read_config_file = read_config_value (line, pattern)
+		end if
+	loop
+	ObjConfig_file.Close
+	set ObjConfig_file = Nothing
+	' catch-all
+End Function
 ' Function to determine the last used number
 ' Using logdir\prefix_lastlog.txt <= contains the last used number
 Function last_number (logfile)
@@ -94,27 +107,25 @@ End Sub
 set shell = CreateObject ("WScript.Shell")
 set fso = CreateObject ("Scripting.FileSystemObject")
 username = shell.ExpandEnvironmentStrings ("%USERNAME%")
-config_file = "C:\Users\" & username & "\Applicaties\FastScan\config.txt"
-set ObjConfig_file = fso.OpenTextFile (config_file)
-dim line
-do while not ObjConfig_file.AtEndOfStream
-	line = ObjConfig_file.ReadLine ()
-	' Base output directory "^base_output_dir='(.*)'$"
-	base_out_dir = read_config_value (line, "^base_output_dir='(.*)'$")
-	outdir = base_out_dir & "\"
-	' Log Directory
-	base_logdir = read_config_value (line, "^log_dir='(.*)'$")
-	logdir = base_logdir & "\"
-loop
-ObjConfig_file.Close
-set ObjConfig_file = Nothing
-' Something is wrong with log_dir
+config_file = shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\FastScan\config.txt"
+' Base output directory "^base_output_dir='(.*)'$"
+base_out_dir =  read_config_file ("^base_output_dir='(.*)'$", config_file)
+outdir = base_out_dir & "\"
+' Log Directory
+base_logdir = read_config_file ("^log_dir='(.*)'$", config_file) & "\"
+logdir = base_logdir & "\"
+' FS Directory
+fs_dir = read_config_file ("^fastscan_dir='(.*)'$", config_file) & "\"
+' IM Directory
+im_dir = read_config_file ("^im_dir='(.*)'$", config_file) & "\"
+' IV Directory
+iv_dir = read_config_file ("^iview_dir='(.*)'$", config_file) & "\"
+
+' Alexander
 if LCase (username) = "tolvrij" then
 	base_logdir = "L:\PBC\Beeldbank\99sys_SCANS\log_a"
-else
-	base_logdir = "C:\Users\" & username & "\Applicaties\FastScan\log"
+	logdir = base_logdir & "\"
 end if
-logdir = base_logdir & "\"
 
 ' Create output directories
 working_dir = outdir & DatePart ("yyyy", Date) & "-" & d_pad (DatePart ("m", Date)) & "-" & d_pad (DatePart ("d", Date)) & "-" & username
@@ -271,7 +282,7 @@ do while 1 = 1
 	' Some jiggery-pokery because some systems don't quite behave as they should
 	Wscript.Echo "Scannen van " & prefix & pad (number) & " naar " & filename & "..."
 	Pause ("Leg het item binnen het scanbare gedeelte op de glasplaat en druk op OK om door te gaan")
-	iview = chr(34) & "C:\Program Files\IrfanView\" & "i_view32.exe" & chr(34)
+	iview = chr(34) & iv_dir & chr(34)
 	if shell.ExpandEnvironmentStrings ("%computername%") = "PC1040198" then
 		' Difficult case
 		shell.Run iview & " /scanhidden /dpi=(300,300) /convert=" & raw_dir & "\" & filename, 1, true
@@ -297,25 +308,7 @@ do while 1 = 1
 			Wscript.Echo "Bezig met bijsnijden ... "
 			' Using the new black cover made everything below useless, but it's kept (one never knows)
 			' Use the new cropper - with high fuzz factor due to nice contrast with black background (le expensive scanneur!) => 10% for scanners with white backgrounds
-				shell.Run "cscript K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\FastScan\fastscan-crop.vbs " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "15%", 0, true
-' <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< BELOW IS NO LONGER USED >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-'			'if shell.ExpandEnvironmentStrings ("%computername%") = "PC1040198" or shell.ExpandEnvironmentStrings ("%computername%") = "PC0840196" then
-'			if shell.ExpandEnvironmentStrings ("%computername%") = "PC0840196" then ' When the black cover of the old Canon Scanner is used
-'				Dim pSizes
-'				pSizes = Array ("", "1640x1036", "1745x1213", "1745x1268", "1773x1243")
-'				psize = u_input ("Wat is het standaardformaat van de postkaart? (1, 2, 3, 4)")
-'				if psize = "" then
-'					psize = 1
-'				end if
-'				' Difficult case
-'				shell.Run "K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\ImageMagick\im_convert.exe -crop " & pSizes (psize) & "+0+0 " & raw_dir & "\" & filename & " " & edit_dir & "\" & filename, 0, true
-'			elseif shell.ExpandEnvironmentStrings ("%computername%") = "PC1240047" or shell.ExpandEnvironmentStrings ("%computername%") = "PC1040198" then
-'				' Use the new cropper - with high fuzz factor due to nice contrast with black background (le expensive scanneur!) => 10% for scanners with white backgrounds
-'				shell.Run "cscript fastscan-crop.vbs " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "15%", 0, true
-'			else
-'				shell.Run "cscript fastscan-crop.vbs " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "10%", 0, true
-'			end if
-' <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ENDS HERE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+			shell.Run "cscript " & chr(34) & fs_dir & "fastscan-crop.vbs" & chr(34) & " " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "15%", 0, true
 			if fso.FileExists (edit_dir & "\" & filename) <> true then
 				Wscript.Echo "Fout: bijsnijden niet voltooid. Mogelijk is de schijf vol. Programma afgesloten."
 				Wscript.Sleep 5000
@@ -331,13 +324,13 @@ do while 1 = 1
 			Select Case border_type
 				Case "W"
 					'25%
-					shell.Run "cscript K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\FastScan\fastscan-crop.vbs " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "25%", 0, true
+					shell.Run "cscript " & chr(34) & fs_dir & "fastscan-crop.vbs" & chr(34) & " " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "25%", 0, true
 				Case "Z"
 					'38%
-					shell.Run "cscript K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\FastScan\fastscan-crop.vbs " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "38%", 0, true
+					shell.Run "cscript " & chr(34) & fs_dir & "fastscan-crop.vbs" & chr(34) & " " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "38%", 0, true
 				Case "G"
 					'15% (to be on the safe side)
-					shell.Run "cscript K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\FastScan\fastscan-crop.vbs " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "15%", 0, true
+					shell.Run "cscript " & chr(34) & fs_dir & "fastscan-crop.vbs" & chr(34) & " " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "15%", 0, true
 			End Select
 		Case "BID"
 			' Cuttings
@@ -346,34 +339,17 @@ do while 1 = 1
 			Select Case border_type
 				Case "W"
 					'25%
-					shell.Run "cscript K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\FastScan\fastscan-crop.vbs " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "25%", 0, true
+					shell.Run "cscript " & chr(34) & fs_dir & "fastscan-crop.vbs" & chr(34) & " " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "25%", 0, true
 				Case "Z"
 					'38%
-					shell.Run "cscript K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\FastScan\fastscan-crop.vbs " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "38%", 0, true
+					shell.Run "cscript " & chr(34) & fs_dir & "fastscan-crop.vbs" & chr(34) & " " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "38%", 0, true
 				Case "G"
 						'15% (to be on the safe side)
-					shell.Run "cscript K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\FastScan\fastscan-crop.vbs " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "15%", 0, true
+					shell.Run "cscript " & chr(34) & fs_dir & "fastscan-crop.vbs" & chr(34) & " " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "15%", 0, true
 			End Select
-' <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< BELOW IS NO LONGER USED >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-'			Dim bSizes
-'			bSizes = Array ("", "1100x1600", "2200x1600")
-'			bsize = u_input ("Wat is het standaardformaat van het bidprentje? (1, 2)")
-'			if bsize = "" then
-'				bsize = 1
-'			end if
-'			Wscript.Echo "Bezig met bijsnijden ... "
-'			shell.Run "K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\ImageMagick\im_convert.exe -crop " & bSizes (bsize) & "+0+0 " & raw_dir & "\" & filename & " " & edit_dir & "\" & filename, 0, true
-'			if fso.FileExists (edit_dir & "\" & filename) <> true then
-'				Wscript.Echo "Fout: bijsnijden niet voltooid. Mogelijk is de schijf vol. Programma afgesloten."
-'				Wscript.Sleep 5000
-'				Wscript.Quit
-'			else
-'				Wscript.Echo "Bijsnijden voltooid"
-'			end if
-' <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ENDS HERE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	End Select
 	Wscript.Echo "Toevoegen metadata ..."
-	shell.Run "cscript K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\FastScan\fastscan-metadata.vbs " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & unique_id & " " & chr(34) & username & chr(34), 0, true
+	shell.Run "cscript " & chr(34) & fs_dir & "fastscan-metadata.vbs" & chr(34) & " divorce " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & unique_id & " " & chr(34) & username & chr(34), 0, true
 	' If this image has a backside & brun = 0
 	' then don't ask questions, but continue the loop
 	' Else, ask questions
