@@ -15,6 +15,36 @@
 '	Script to add as much metadata as possible to TIFF-files (using FADGI-guidelines)
 '	Parameters:
 '	fastscan-metadata.vbs filename number username
+Function read_config_value (line, pattern)
+	set r = new Regexp
+	r.IgnoreCase = True
+	r.Pattern = pattern
+	r.Global = False
+	if r.Test (line) = True then
+		set match = r.Execute (line)
+		set submatch = match.Item(0).SubMatches
+		if submatch.Count = 1 then
+			read_config_value = submatch.Item(0)
+		end if
+	end if
+End Function
+
+Function read_config_file (pattern, file)
+	set ObjConfig_file = fso.OpenTextFile (file)
+	dim line
+	do while not ObjConfig_file.AtEndOfStream
+		line = ObjConfig_file.ReadLine ()
+		if read_config_value (line, pattern) <> Empty then
+			read_config_file = read_config_value (line, pattern)
+		end if
+	loop
+	ObjConfig_file.Close
+	set ObjConfig_file = Nothing
+	' catch-all
+End Function
+
+
+
 
 'Exif.Image.ImageHistory ?
 dim rTags, evTags

@@ -47,6 +47,8 @@ Function read_config_file (pattern, file)
 	set ObjConfig_file = Nothing
 	' catch-all
 End Function
+
+
 ' Function to determine the last used number
 ' Using logdir\prefix_lastlog.txt <= contains the last used number
 Function last_number (logfile)

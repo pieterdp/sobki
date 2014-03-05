@@ -25,13 +25,27 @@ Function read_config_value (line, pattern)
 	r.IgnoreCase = True
 	r.Pattern = pattern
 	r.Global = False
-	If r.Test (line) = True then
+	if r.Test (line) = True then
 		set match = r.Execute (line)
 		set submatch = match.Item(0).SubMatches
-		If submatch.Count = 1 then
+		if submatch.Count = 1 then
 			read_config_value = submatch.Item(0)
-		End If
-	End If
+		end if
+	end if
+End Function
+
+Function read_config_file (pattern, file)
+	set ObjConfig_file = fso.OpenTextFile (file)
+	dim line
+	do while not ObjConfig_file.AtEndOfStream
+		line = ObjConfig_file.ReadLine ()
+		if read_config_value (line, pattern) <> Empty then
+			read_config_file = read_config_value (line, pattern)
+		end if
+	loop
+	ObjConfig_file.Close
+	set ObjConfig_file = Nothing
+	' catch-all
 End Function
 
 
@@ -41,8 +55,7 @@ Function run_and_get (command)
 	'Wscript.Echo command
 	set shell = WScript.CreateObject("WScript.Shell")
 	set fso = CreateObject ("Scripting.FileSystemObject")
-	username = shell.ExpandEnvironmentStrings ("%USERNAME%")
-	output = "C:\Users\" & username & "\Applicaties\FastScan\cmd_output.txt"
+	output = shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\FastScan\cmd_output.txt"
 	c_command = "cmd /c " & chr(34) & command & chr(34) & " > " & output
 	shell.Run c_command, 0, true
 	set shell = nothing
@@ -55,7 +68,7 @@ End Function
 ' Function to get the dimensions (in image_magick "crop" format) of
 ' the scan without the whitespace
 Function get_dimensions (input, fuzz)
-	im_command = "K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\ImageMagick\im_convert.exe " & chr(34) & input & chr(34) & " -virtual-pixel edge -blur 0x15 -fuzz " & fuzz & " -trim -format %[fx:w]x%[fx:h]+%[fx:page.x]+%[fx:page.y] info:"
+	im_command = chr(34) & im_dir & "im_convert.exe" & chr(34) & " " & chr(34) & input & chr(34) & " -virtual-pixel edge -blur 0x15 -fuzz " & fuzz & " -trim -format %[fx:w]x%[fx:h]+%[fx:page.x]+%[fx:page.y] info:"
 	get_dimensions = run_and_get (im_command)
 End Function
 ' <<<<<<<<<<<<<<<<< Application >>>>>>>>>>>>>>>>>>
@@ -63,6 +76,15 @@ End Function
 ' compare_with.tif TIFF 1598x1002 2551x4200+0+0 8-bit sRGB 0.109u 0:00.093
 ' im_convert.exe compare_with.tif -crop 1598x1002+0+0 +repage compare_with_result.png
 ' http://stackoverflow.com/questions/5690134/running-command-line-silently-with-vbscript-and-getting-output
+
+' Read configuration file
+' FS Directory
+fs_dir = read_config_file ("^fastscan_dir='(.*)'$", config_file) & "\"
+' IM Directory
+im_dir = read_config_file ("^im_dir='(.*)'$", config_file) & "\"
+' IV Directory
+iv_dir = read_config_file ("^iview_dir='(.*)'$", config_file) & "\"
+
 
 ' Check arguments
 If Wscript.Arguments.Count <> 3 Then
@@ -88,7 +110,7 @@ im_dimensions = get_dimensions (input_file, fuzz_factor)
 ' Creating new file
 set shell = WScript.CreateObject("WScript.Shell")
 Wscript.Echo "Cropping input file with dimensions " & im_dimensions & "..."
-im_commandx = "K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\ImageMagick\im_convert.exe " & chr(34) & input_file & chr(34) & " -crop " & im_dimensions & " +repage " & chr(34) & output_file & chr(34)
+im_commandx =  chr(34) & im_dir & "im_convert.exe" & chr(34) & " " & chr(34) & input_file & chr(34) & " -crop " & im_dimensions & " +repage " & chr(34) & output_file & chr(34)
 shell.Run im_commandx, 0, true
 If fso.FileExists (output_file) <> True Then
 	Wscript.Echo "Error: output file " & output_file & " was not created. Perhaps the drive is full (or something else borked). Exiting program."
