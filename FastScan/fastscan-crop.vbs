@@ -35,6 +35,7 @@ Function read_config_value (line, pattern)
 End Function
 
 Function read_config_file (pattern, file)
+	set fso = CreateObject ("Scripting.FileSystemObject")
 	set ObjConfig_file = fso.OpenTextFile (file)
 	dim line
 	do while not ObjConfig_file.AtEndOfStream
@@ -78,6 +79,8 @@ End Function
 ' http://stackoverflow.com/questions/5690134/running-command-line-silently-with-vbscript-and-getting-output
 
 ' Read configuration file
+set shell = CreateObject ("WScript.Shell")
+config_file = shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\FastScan\config.txt"
 ' FS Directory
 fs_dir = read_config_file ("^fastscan_dir='(.*)'$", config_file) & "\"
 ' IM Directory
