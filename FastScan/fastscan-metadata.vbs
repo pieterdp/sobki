@@ -30,6 +30,7 @@ Function read_config_value (line, pattern)
 End Function
 
 Function read_config_file (pattern, file)
+	set fso = CreateObject ("Scripting.FileSystemObject")
 	set ObjConfig_file = fso.OpenTextFile (file)
 	dim line
 	do while not ObjConfig_file.AtEndOfStream
@@ -65,8 +66,8 @@ Function run_and_get (command)
 	set shell = WScript.CreateObject("WScript.Shell")
 	set fso = CreateObject ("Scripting.FileSystemObject")
 	username = shell.ExpandEnvironmentStrings ("%USERNAME%")
-	output = "C:\Users\" & username & "\Applicaties\FastScan\md_cmd_output.txt"
-	c_command = "cmd /c " & chr(34) & command & chr(34) & " > " & output
+	output = shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\FastScan\md_cmd_output.txt"
+	c_command = "cmd /c " & chr(34) & command & chr(34) & " > " & chr (34) & output & chr (34)
 	shell.Run c_command, 0, true
 	set shell = nothing
 	set f = fso.GetFile (output)
@@ -97,7 +98,7 @@ Function CheckTags (FileName)
 	' Setting the -s3 flag removes the name of the tag
 	' Using -f means empty values are equal to '-'
 	' Using -n means values are given in numbers when appropriate
-	bCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool\exiftool.exe -s3 -f "
+	bCommand = chr(34) & exf_dir & "exiftool.exe" & " -s3 -f "
 	For Each Tag in rTags
 		If Tag = "ColorSpace" Then
 			tValue = run_and_get (bCommand & "-" & Tag & " " & chr(34) & FileName & chr(34))
@@ -118,7 +119,7 @@ End Function
 Function ExivCheckTags (eFileName)
 	dim eTags, eCommand
 	Set eTags = CreateObject ("Scripting.Dictionary")
-	eCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\exiv2\exiv2.exe pr -P v -g "
+	eCommand = chr(34) & exv_dir & "exiv2.exe" & chr(34) & " pr -P v -g "
 	For Each eTag in evTags
 		eValue = run_and_get (eCommand & chr(34) & eTag & chr(34) & " " & chr(34) & FileName & chr(34))
 		If eValue <> "" Then
@@ -136,7 +137,7 @@ End Function
 Function IMIdentify (iFileName)
 	Dim iCommand, iFormat
 	iFormat = "-format " & chr(34) & "%[w];%[h];%[colorspace];%[profiles];%[x];%[y];%[C];%[units];%[depth];%[channels]" & chr(34)
-	iCommand = "K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\ImageMagick\identify.exe " & " " & iFormat & " " & chr(34) & iFileName & chr(34)
+	iCommand = chr(34) & im_dir & "identify.exe" & chr(34) & " " & iFormat & " " & chr(34) & iFileName & chr(34)
 	Dim iReturn, iOptions
 	iReturn = run_and_get (iCommand)
 	iOptions = Split (iReturn, ";", -1, 1)
@@ -198,6 +199,14 @@ If Wscript.Arguments.Count < 4 Then
 	Wscript.Sleep 5000
 	Wscript.Quit
 End If
+Set Shell = CreateObject ("WScript.Shell")
+' Read configuration file
+config_file = Shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\FastScan\config.txt"
+' IM Directory
+im_dir = read_config_file ("^im_dir='(.*)'$", config_file) & "\"
+' EXIF Directory
+exv_dir = read_config_file ("^exv_dir='(.*)'$", config_file) & "\"
+exf_dir = read_config_file ("^exf_dir='(.*)'$", config_file) & "\"
 
 dim oTags, nTags, tKeys, IMInfo, Number, UserName, FileName, mType
 Number = Wscript.Arguments (2)
@@ -216,7 +225,6 @@ Set nModels = CreateObject ("Scripting.Dictionary")
 nModels ("PC1240047") = "ScanMaker 9800 XL+"
 nModels ("PC1040198") = "CanoScan 3200F"
 nModels ("PC0840196") = "Scanjet 8200"
-Set Shell = CreateObject ("WScript.Shell")
 ComputerName = Shell.ExpandEnvironmentStrings ("%computername%")
 
 ' Real app starts about here
@@ -258,7 +266,7 @@ Select Case mType
 		Wscript.Echo "Terugkoppelen metadata aan bestanden ..."
 		If Use_Fast = true Then
 			Dim wcCommand
-			wcCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\exiv2\exiv2.exe mo -M"
+			wcCommand = chr(34) & exv_dir & "exiv2.exe" & chr(34) & " mo -M"
 			Set Shell = CreateObject ("WScript.Shell")
 			For Each ckcTag in ckcTags
 				Select Case ckcTag
@@ -289,7 +297,7 @@ Select Case mType
 			Next
 		Else
 			Dim ecCommand
-			ecCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool\exiftool.exe -n "
+			ecCommand = chr(34) & exf_dir & "exiftool.exe" & chr(34) & " -n "
 			Set Shell = CreateObject ("WScript.Shell")
 			For Each ckcTag in ckcTags
 				'Wscript.Echo "Writing " & nTag & " to value " & nTags (nTag) '& ": " & eCommand & "-" & nTag & "=" & nTags (nTag) & " " & chr(34) & FilePath & chr(34)
@@ -363,10 +371,10 @@ Select Case mType
 		' Add new metadata to the file
 		Wscript.Echo "Adding metadata to file ... "
 		Dim eCommand
-		eCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool\exiftool.exe -n "
+		eCommand = chr(34) & exf_dir & "exiftool.exe" & chr(34) & " -n "
 		If Use_Fast = true Then
 			Dim wCommand
-			wCommand = "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\exiv2\exiv2.exe mo -M"
+			wCommand = chr(34) & exv_dir & "exiv2.exe" & chr(34) & " mo -M"
 			Set Shell = CreateObject ("WScript.Shell")
 			For Each nTag in nTags
 				Select Case nTag
@@ -409,7 +417,7 @@ Select Case mType
 		Wscript.Echo "Splitting off metadata file ... "
 		' Writing a more readable format may be done using exiftool (reads an .exv like any other image)
 		If Use_Fast = true Then
-			Shell.Run "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\exiv2\exiv2.exe ex -e a " & chr(34) & FilePath & chr(34), 0, true
+			Shell.Run chr(34) & exv_dir & "exiv2.exe" & chr(34) & " ex -e a " & chr(34) & FilePath & chr(34), 0, true
 			Else
 			Shell.Run "cmd /c " & eCommand & " -j --FileSize --FileModifyDate --FileAccessDate --FilePermissions " & chr(34) & FilePath & chr(34) & " > " & chr(34) & FilePath & ".json" & chr(34), 0, true
 		End If

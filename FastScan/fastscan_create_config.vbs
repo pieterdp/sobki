@@ -15,6 +15,15 @@
 '
 ' This script allows the creation of the configuration file for fastscan-3.0
 
+Sub touchFile (fileName)
+	Set fso = CreateObject("Scripting.FileSystemObject")
+	If fso.FileExists (fileName) <> True Then
+		Set file = fso.CreateTextFile(fileName, True)
+		file.WriteLine("TO_BE_OVERWRITTEN 00:00:00:00:00:00:xx")
+		file.Close
+	End If
+End Sub
+
 config_default = array ("##", "# Configuratiebestand voor FastScan", "# Vorm: key='value'", "##", "##", "# Output-dir: in die map worden mappen aangemaakt met volgend masker:", "# jjjj-mm-dd-%user%", "##", "base_output_dir='K:\Cultuur\PBC\Beeldbank\99sys_SCANS'", "fastscan_dir='K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\FastScan'", "iview_dir='C:\Program Files\IrfanView'", "im_dir='K:\Cultuur\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\ImageMagick'", "exf_dir='L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\EXIFTool'", "exv_dir='L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\2_Scansoftware\exiv2'")
 
 set shell = CreateObject ("WScript.Shell")
@@ -38,3 +47,6 @@ For Each line in config_default
 	ObjConfig_file.WriteLine (line)
 Next
 ObjConfig_file.close
+
+' Create some required files, or else we crash
+touchFile shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\FastScan\md_cmd_output.txt"
