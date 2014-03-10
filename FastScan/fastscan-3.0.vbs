@@ -286,13 +286,13 @@ do while 1 = 1
 	iview = chr(34) & iv_dir & "i_view32.exe" & chr(34)
 	if shell.ExpandEnvironmentStrings ("%computername%") = "PC1040198" then
 		' Difficult case
-'		shell.Run iview & " /scanhidden /dpi=(300,300) /convert=" & raw_dir & "\" & filename, 1, true
+		shell.Run iview & " /scanhidden /dpi=(300,300) /convert=" & raw_dir & "\" & filename, 1, true
 	'elseif shell.ExpandEnvironmentStrings ("%computername%") = "PC1240047" then
 	'	' Expensive scanner with a lot of options
 	'	shell.Run iview & " /scanhidden /dpi=(300,300) /convert=" & raw_dir & "\" & filename, 2, true
 	else
 		' Normal case
-'		shell.Run iview & " /scanhidden /dpi=(300,300) /convert=" & raw_dir & "\" & filename, 2, true
+		shell.Run iview & " /scanhidden /dpi=(300,300) /convert=" & raw_dir & "\" & filename, 2, true
 	end if
 	if fso.FileExists (raw_dir & "\" & filename) <> true then
 		Wscript.Echo "Fout: scan niet voltooid. Mogelijk is de schijf vol of zijn er verbindingsproblemen met de scanner. Programma afgesloten."
