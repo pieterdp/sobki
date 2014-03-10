@@ -57,7 +57,12 @@ Function run_and_get (command)
 	set shell = WScript.CreateObject("WScript.Shell")
 	set fso = CreateObject ("Scripting.FileSystemObject")
 	output = shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\FastScan\cmd_output.txt"
-	c_command = "cmd /c " & chr(34) & command & chr(34) & " > " & output
+	If fso.FileExists (output) <> True Then
+		set op = fso.CreateTextFile (output)
+		op.WriteLine ("0")
+		op.Close
+	End If
+	c_command = "cmd /c " & command & " > " & chr(34) & output & chr(34)
 	shell.Run c_command, 0, true
 	set shell = nothing
 	set file = fso.OpenTextFile (output, 1)
@@ -69,7 +74,7 @@ End Function
 ' Function to get the dimensions (in image_magick "crop" format) of
 ' the scan without the whitespace
 Function get_dimensions (input, fuzz)
-	im_command = chr(34) & im_dir & "im_convert.exe" & chr(34) & " " & chr(34) & input & chr(34) & " -virtual-pixel edge -blur 0x15 -fuzz " & fuzz & " -trim -format %[fx:w]x%[fx:h]+%[fx:page.x]+%[fx:page.y] info:"
+	im_command = im_dir & "im_convert.exe" & " " & chr(34) & input & chr(34) & " -virtual-pixel edge -blur 0x15 -fuzz " & fuzz & " -trim -format %[fx:w]x%[fx:h]+%[fx:page.x]+%[fx:page.y] info:"
 	get_dimensions = run_and_get (im_command)
 End Function
 ' <<<<<<<<<<<<<<<<< Application >>>>>>>>>>>>>>>>>>

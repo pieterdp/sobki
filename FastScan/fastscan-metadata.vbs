@@ -67,7 +67,7 @@ Function run_and_get (command)
 	set fso = CreateObject ("Scripting.FileSystemObject")
 	username = shell.ExpandEnvironmentStrings ("%USERNAME%")
 	output = shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\FastScan\md_cmd_output.txt"
-	c_command = "cmd /c " & chr(34) & command & chr(34) & " > " & chr (34) & output & chr (34)
+	c_command = "cmd /c " & command & " > " & chr (34) & output & chr (34)
 	shell.Run c_command, 0, true
 	set shell = nothing
 	set f = fso.GetFile (output)

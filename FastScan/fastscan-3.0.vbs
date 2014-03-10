@@ -114,8 +114,7 @@ config_file = shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\F
 base_out_dir =  read_config_file ("^base_output_dir='(.*)'$", config_file)
 outdir = base_out_dir & "\"
 ' Log Directory
-base_logdir = read_config_file ("^log_dir='(.*)'$", config_file) & "\"
-logdir = base_logdir & "\"
+logdir = shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\FastScan\log\"
 ' FS Directory
 fs_dir = read_config_file ("^fastscan_dir='(.*)'$", config_file) & "\"
 ' IM Directory
@@ -284,16 +283,16 @@ do while 1 = 1
 	' Some jiggery-pokery because some systems don't quite behave as they should
 	Wscript.Echo "Scannen van " & prefix & pad (number) & " naar " & filename & "..."
 	Pause ("Leg het item binnen het scanbare gedeelte op de glasplaat en druk op OK om door te gaan")
-	iview = chr(34) & iv_dir & chr(34)
+	iview = chr(34) & iv_dir & "i_view32.exe" & chr(34)
 	if shell.ExpandEnvironmentStrings ("%computername%") = "PC1040198" then
 		' Difficult case
-		shell.Run iview & " /scanhidden /dpi=(300,300) /convert=" & raw_dir & "\" & filename, 1, true
+'		shell.Run iview & " /scanhidden /dpi=(300,300) /convert=" & raw_dir & "\" & filename, 1, true
 	'elseif shell.ExpandEnvironmentStrings ("%computername%") = "PC1240047" then
 	'	' Expensive scanner with a lot of options
 	'	shell.Run iview & " /scanhidden /dpi=(300,300) /convert=" & raw_dir & "\" & filename, 2, true
 	else
 		' Normal case
-		shell.Run iview & " /scanhidden /dpi=(300,300) /convert=" & raw_dir & "\" & filename, 2, true
+'		shell.Run iview & " /scanhidden /dpi=(300,300) /convert=" & raw_dir & "\" & filename, 2, true
 	end if
 	if fso.FileExists (raw_dir & "\" & filename) <> true then
 		Wscript.Echo "Fout: scan niet voltooid. Mogelijk is de schijf vol of zijn er verbindingsproblemen met de scanner. Programma afgesloten."
