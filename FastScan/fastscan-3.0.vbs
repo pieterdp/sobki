@@ -373,9 +373,11 @@ do while 1 = 1
 '	shell.Run "cscript " & chr(34) & fs_dir & "fastscan-metadata.vbs" & chr(34) & " divorce " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & unique_id & " " & chr(34) & username & chr(34), 0, true
 	' Add color profile (TODO automate)
 	if shell.ExpandEnvironmentStrings ("%computername%") = "PC1240047" then
-		shell.Run cms_dir & "tifficc.exe " & "-o" & chr(34) & "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\1_Scanner\eciRGB_v2_profile\eciRGB_v2_ICCv4.icc" & chr(34) & " -i" & chr(34) & "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\1_Scanner\ScanMaker 9800XL plus\Kleurprofielen\SF_R (Microtek ScanMaker 9800XL+)-pc1240047.icc" & chr(34) & " -e " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34)
+		shell.Run cms_dir & "tifficc.exe " & "-o" & chr(34) & "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\1_Scanner\eciRGB_v2_profile\eciRGB_v2_ICCv4.icc" & chr(34) & " -i" & chr(34) & "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\1_Scanner\ScanMaker 9800XL plus\Kleurprofielen\SF_R (Microtek ScanMaker 9800XL+)-pc1240047.icc" & chr(34) & " -e " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & ".ick" & chr(34), 0, true
+		fso.MoveFile edit_dir & "\" & filename & ".ick",  edit_dir & "\" & filename
 	else
-		shell.Run cms_dir & "tifficc.exe " & "-o" & chr(34) & "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\1_Scanner\eciRGB_v2_profile\eciRGB_v2_ICCv4.icc" & chr(34) & " -e " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34)
+		shell.Run cms_dir & "tifficc.exe " & "-o" & chr(34) & "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\1_Scanner\eciRGB_v2_profile\eciRGB_v2_ICCv4.icc" & chr(34) & " -e " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & ".ick" & chr(34), 0, true
+		fso.MoveFile edit_dir & "\" & filename & ".ick",  edit_dir & "\" & filename
 	end if
 	' If this image has a backside & brun = 0
 	' then don't ask questions, but continue the loop
