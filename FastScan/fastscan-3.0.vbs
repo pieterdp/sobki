@@ -161,6 +161,8 @@ Select Case Wscript.Arguments(0)
 		prefix = "FOT"
 	Case "bidprent"
 		prefix = "BID"
+	Case "porselein"
+		prefix = "POR"
 	Case Else
 	Wscript.Echo "Opgelet! Fout type gespecifieerd: script fastscan-3.0.vbs type. Programma afgesloten."
 	Wscript.Sleep 5000
@@ -294,6 +296,8 @@ do while 1 = 1
 		' Normal case
 		shell.Run iview & " /scanhidden /dpi=(300,300) /convert=" & raw_dir & "\" & filename, 2, true
 	end if
+	' Porseleinkaarten require higher DPI settings
+	' shell.Run iview & " /scanhidden /dpi=(600,600) /convert=" & raw_dir & "\" & filename, 2, true
 	if fso.FileExists (raw_dir & "\" & filename) <> true then
 		Wscript.Echo "Fout: scan niet voltooid. Mogelijk is de schijf vol of zijn er verbindingsproblemen met de scanner. Programma afgesloten."
 		Wscript.Sleep 5000
@@ -318,6 +322,20 @@ do while 1 = 1
 				Wscript.Echo "Bijsnijden voltooid"
 			end if
 		Case "AFF"
+		Case "POR"
+			' Cuttings
+			Wscript.Echo "Bijsnijden van " & filename & "..."
+			Wscript.Echo "Bezig met bijsnijden ... "
+			' Using the new black cover made everything below useless, but it's kept (one never knows)
+			' Use the new cropper - with high fuzz factor due to nice contrast with black background (le expensive scanneur!) => 10% for scanners with white backgrounds
+			shell.Run "cscript " & chr(34) & fs_dir & "fastscan-crop.vbs" & chr(34) & " " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "15%", 0, true
+			if fso.FileExists (edit_dir & "\" & filename) <> true then
+				Wscript.Echo "Fout: bijsnijden niet voltooid. Mogelijk is de schijf vol. Programma afgesloten."
+				Wscript.Sleep 5000
+				Wscript.Quit
+			else
+				Wscript.Echo "Bijsnijden voltooid"
+			end if
 		Case "FOT"
 			' Cuttings
 			Wscript.Echo "Bijsnijden van " & filename & "..."
