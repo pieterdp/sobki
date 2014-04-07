@@ -121,6 +121,8 @@ fs_dir = read_config_file ("^fastscan_dir='(.*)'$", config_file) & "\"
 im_dir = read_config_file ("^im_dir='(.*)'$", config_file) & "\"
 ' IV Directory
 iv_dir = read_config_file ("^iview_dir='(.*)'$", config_file) & "\"
+' CMS Directory
+cms_dir = read_config_file ("^cms_dir='(.*)'$", config_file) & "\"
 
 ' Alexander
 if LCase (username) = "tolvrij" then
@@ -369,6 +371,12 @@ do while 1 = 1
 	End Select
 '	Wscript.Echo "Toevoegen metadata ..."
 '	shell.Run "cscript " & chr(34) & fs_dir & "fastscan-metadata.vbs" & chr(34) & " divorce " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & unique_id & " " & chr(34) & username & chr(34), 0, true
+	' Add color profile (TODO automate)
+	if shell.ExpandEnvironmentStrings ("%computername%") = "PC1240047" then
+		shell.Run cms_dir & "tifficc.exe " & "-o" & chr(34) & "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\1_Scanner\eciRGB_v2_profile\eciRGB_v2_ICCv4.icc" & chr(34) & " -i" & chr(34) & "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\1_Scanner\ScanMaker 9800XL plus\Kleurprofielen\SF_R (Microtek ScanMaker 9800XL+)-pc1240047.icc" & chr(34) & " -e " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34)
+	else
+		shell.Run cms_dir & "tifficc.exe " & "-o" & chr(34) & "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\1_Scanner\eciRGB_v2_profile\eciRGB_v2_ICCv4.icc" & chr(34) & " -e " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34)
+	end if
 	' If this image has a backside & brun = 0
 	' then don't ask questions, but continue the loop
 	' Else, ask questions
