@@ -46,7 +46,7 @@ End Function
 Function read_scanners_xml ()
 	' scanners.xml is always in ../etc/
 	'dim scanner_dir = fso.GetParentFolderName (shell.CurrentDirectory) & "\etc\"
-	scanner_dir = fso.GetParentFolderName (shell.CurrentDirectory) & "\etc\"
+	scanner_dir = fs_dir & "\etc\"
 	scanner_file = scanner_dir & "scanners.xml"
 	set oXML = CreateObject ("MSXML.DOMDocument")
 	oXML.Load scanner_file
@@ -58,11 +58,13 @@ End Function
 ' Read configuration file
 set shell = CreateObject ("WScript.Shell")
 set fso = CreateObject ("Scripting.FileSystemObject")
-set sXML = read_scanners_xml
 username = shell.ExpandEnvironmentStrings ("%USERNAME%")
 config_file = shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\FastScan\config.txt"
 ' CMS Directory
 cms_dir = read_config_file ("^cms_dir='(.*)'$", config_file) & "\"
+' FS Directory
+fs_dir = read_config_file ("^fastscan_dir='(.*)'$", config_file) & "\"
+set sXML = read_scanners_xml
 
 if Wscript.Arguments.Count <> 2 Then
 	Wscript.Echo "Opgelet! cms.vbs input_filepath scanner_name"
@@ -77,7 +79,7 @@ set xIProf = sXML.selectSingleNode ("/scanners/scanner[@name='" & scanner_name &
 lIProf = xIProf.Text
 if xIProf.getAttribute ("type") = "included" then
 	' Some profiles are included with fastscan.
-	lIProf = fso.GetParentFolderName (shell.CurrentDirectory) & "\lib\icc-profiles\" & lIProf
+	lIProf = fs_dir & "lib\icc-profiles\" & lIProf
 end if
 if XIProf.getAttribute ("type") = "none" then
 	lIProf = ""
@@ -88,11 +90,11 @@ set xOProf = sXML.selectSingleNode ("/scanners/scanner[@name='" & scanner_name &
 lOProf = xOProf.Text
 if xOProf.getAttribute ("type") = "included" then
 	' Some profiles are included with fastscan.
-	lOProf = fso.GetParentFolderName (shell.CurrentDirectory) & "\lib\icc-profiles\" & lOProf
+	lOProf = fs_dir & "lib\icc-profiles\" & lOProf
 end if
 if XOProf.getAttribute ("type") = "none" then
 	' Always use the default output profile
-	lOProf = fso.GetParentFolderName (shell.CurrentDirectory) & "\lib\icc-profiles\eciRGB_v2_ICCv4.icc"
+	lOProf = fs_dir & "lib\icc-profiles\eciRGB_v2_ICCv4.icc"
 end if
 ' Move the file
 fso.MoveFile input_filepath, input_filepath & ".ick.tif"
@@ -103,4 +105,3 @@ end if
 cms_string = cms_string & " -o" & chr(34) & lOProf & chr(34) & " -e " & chr(34) & input_filepath & ".ick.tif" & chr(34) & " " & chr(34) & input_filepath & chr(34)
 shell.Run cms_string, 0, true
 fso.DeleteFile input_filepath & ".ick.tif"
-wscript.quit

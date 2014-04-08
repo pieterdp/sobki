@@ -48,7 +48,7 @@ End Function
 Function read_scanners_xml ()
 	' scanners.xml is always in ../etc/
 	'dim scanner_dir = fso.GetParentFolderName (shell.CurrentDirectory) & "\etc\"
-	scanner_dir = shell.CurrentDirectory & "\etc\"
+	scanner_dir = fs_dir & "etc\"
 	scanner_file = scanner_dir & "scanners.xml"
 	set oXML = CreateObject ("MSXML.DOMDocument")
 	oXML.Load scanner_file
@@ -218,7 +218,6 @@ If Wscript.Arguments.Count < 4 Then
 	Wscript.Quit
 End If
 Set Shell = CreateObject ("WScript.Shell")
-set sXML = read_scanners_xml
 ' Read configuration file
 config_file = Shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\FastScan\config.txt"
 ' IM Directory
@@ -226,6 +225,9 @@ im_dir = read_config_file ("^im_dir='(.*)'$", config_file) & "\"
 ' EXIF Directory
 exv_dir = read_config_file ("^exv_dir='(.*)'$", config_file) & "\"
 exf_dir = read_config_file ("^exf_dir='(.*)'$", config_file) & "\"
+' FS Directory
+fs_dir = read_config_file ("^fastscan_dir='(.*)'$", config_file) & "\"
+set sXML = read_scanners_xml
 
 dim oTags, nTags, tKeys, IMInfo, Number, UserName, FileName, mType
 Number = Wscript.Arguments (2)

@@ -52,7 +52,7 @@ End Function
 Function read_scanners_xml ()
 	' scanners.xml is always in ../etc/
 	'dim scanner_dir = fso.GetParentFolderName (shell.CurrentDirectory) & "\etc\"
-	scanner_dir = shell.CurrentDirectory & "\etc\"
+	scanner_dir = fs_dir & "\etc\"
 	scanner_file = scanner_dir & "scanners.xml"
 	set oXML = CreateObject ("MSXML.DOMDocument")
 	oXML.Load scanner_file
@@ -127,7 +127,6 @@ End Sub
 ' Read configuration file
 set shell = CreateObject ("WScript.Shell")
 set fso = CreateObject ("Scripting.FileSystemObject")
-set sXML = read_scanners_xml
 username = shell.ExpandEnvironmentStrings ("%USERNAME%")
 config_file = shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\FastScan\config.txt"
 ' Base output directory "^base_output_dir='(.*)'$"
@@ -143,6 +142,7 @@ im_dir = read_config_file ("^im_dir='(.*)'$", config_file) & "\"
 iv_dir = read_config_file ("^iview_dir='(.*)'$", config_file) & "\"
 ' CMS Directory
 cms_dir = read_config_file ("^cms_dir='(.*)'$", config_file) & "\"
+set sXML = read_scanners_xml
 
 ' Alexander
 if LCase (username) = "tolvrij" then
@@ -384,11 +384,11 @@ do while 1 = 1
 '	shell.Run "cscript " & chr(34) & fs_dir & "fastscan-metadata.vbs" & chr(34) & " divorce " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & unique_id & " " & chr(34) & username & chr(34), 0, true
 	' Add color profile (TODO automate)
 	if shell.ExpandEnvironmentStrings ("%computername%") = sXML.selectSingleNode ("/scanners/scanner[@name='ScanMaker 9800XL plus']/computer[@relation='attached-to']").Text then
-		shell.Run "cscript lib/cms.vbs " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & chr(34) & "ScanMaker 9800XL plus" & chr(34)
+		shell.Run "cscript " & fs_dir & "lib\cms.vbs " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & chr(34) & "ScanMaker 9800XL plus" & chr(34), 0, true
 	else
 		' Select scanner by computer name
 		scanner_name = scanner_by_computer_name (shell.ExpandEnvironmentStrings ("%computername%")).Text
-		shell.Run "cscript lib/cms.vbs " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & chr(34) & scanner_name & chr(34)
+		shell.Run "cscript " & fs_dir & "lib\cms.vbs " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & chr(34) & scanner_name & chr(34), 0, true
 	end if
 	' If this image has a backside & brun = 0
 	' then don't ask questions, but continue the loop
