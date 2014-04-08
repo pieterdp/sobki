@@ -48,6 +48,25 @@ Function read_config_file (pattern, file)
 	' catch-all
 End Function
 
+' Function to read the scanners.xml-file
+Function read_scanners_xml ()
+	' scanners.xml is always in ../etc/
+	'dim scanner_dir = fso.GetParentFolderName (shell.CurrentDirectory) & "\etc\"
+	scanner_dir = shell.CurrentDirectory & "\etc\"
+	scanner_file = scanner_dir & "scanners.xml"
+	set oXML = CreateObject ("MSXML.DOMDocument")
+	oXML.Load scanner_file
+	set read_scanners_xml = oXML
+End Function
+
+' Get scanners by computer name
+Function scanner_by_computer_name (computerName)
+	set sList = sXML.selectNodes ("/scanners/scanner/computer[@relation='attached-to'][text()='" & computerName & "']")
+	for each sItem in sList
+		' This is intentional - 1 scanner/computer
+		scanner_by_computer_name = sItem.ParentNode.selectSingleNode ("name")
+	next
+End Function
 
 ' Function to determine the last used number
 ' Using logdir\prefix_lastlog.txt <= contains the last used number
@@ -108,6 +127,7 @@ End Sub
 ' Read configuration file
 set shell = CreateObject ("WScript.Shell")
 set fso = CreateObject ("Scripting.FileSystemObject")
+set sXML = read_scanners_xml
 username = shell.ExpandEnvironmentStrings ("%USERNAME%")
 config_file = shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\FastScan\config.txt"
 ' Base output directory "^base_output_dir='(.*)'$"
@@ -288,16 +308,7 @@ do while 1 = 1
 	Wscript.Echo "Scannen van " & prefix & pad (number) & " naar " & filename & "..."
 	Pause ("Leg het item binnen het scanbare gedeelte op de glasplaat en druk op OK om door te gaan")
 	iview = chr(34) & iv_dir & "i_view32.exe" & chr(34)
-	if shell.ExpandEnvironmentStrings ("%computername%") = "PC1040198" then
-		' Difficult case
-		shell.Run iview & " /scanhidden /dpi=(300,300) /convert=" & raw_dir & "\" & filename, 1, true
-	'elseif shell.ExpandEnvironmentStrings ("%computername%") = "PC1240047" then
-	'	' Expensive scanner with a lot of options
-	'	shell.Run iview & " /scanhidden /dpi=(300,300) /convert=" & raw_dir & "\" & filename, 2, true
-	else
-		' Normal case
-		shell.Run iview & " /scanhidden /dpi=(300,300) /convert=" & raw_dir & "\" & filename, 2, true
-	end if
+	shell.Run iview & " /scanhidden /dpi=(300,300) /convert=" & raw_dir & "\" & filename, 2, true
 	' Porseleinkaarten require higher DPI settings
 	' shell.Run iview & " /scanhidden /dpi=(600,600) /convert=" & raw_dir & "\" & filename, 2, true
 	if fso.FileExists (raw_dir & "\" & filename) <> true then
@@ -372,12 +383,12 @@ do while 1 = 1
 '	Wscript.Echo "Toevoegen metadata ..."
 '	shell.Run "cscript " & chr(34) & fs_dir & "fastscan-metadata.vbs" & chr(34) & " divorce " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & unique_id & " " & chr(34) & username & chr(34), 0, true
 	' Add color profile (TODO automate)
-	if shell.ExpandEnvironmentStrings ("%computername%") = "PC1240047" then
-		shell.Run cms_dir & "tifficc.exe " & "-o" & chr(34) & "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\1_Scanner\eciRGB_v2_profile\eciRGB_v2_ICCv4.icc" & chr(34) & " -i" & chr(34) & "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\1_Scanner\ScanMaker 9800XL plus\Kleurprofielen\SF_R (Microtek ScanMaker 9800XL+)-pc1240047.icc" & chr(34) & " -e " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & ".ick" & chr(34), 0, true
-		fso.MoveFile edit_dir & "\" & filename & ".ick",  edit_dir & "\" & filename
+	if shell.ExpandEnvironmentStrings ("%computername%") = sXML.selectSingleNode ("/scanners/scanner[@name='ScanMaker 9800XL plus']/computer[@relation='attached-to']").Text then
+		shell.Run "cscript lib/cms.vbs " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & chr(34) & "ScanMaker 9800XL plus" & chr(34)
 	else
-		shell.Run cms_dir & "tifficc.exe " & "-o" & chr(34) & "L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\1_Scanner\eciRGB_v2_profile\eciRGB_v2_ICCv4.icc" & chr(34) & " -e " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & ".ick" & chr(34), 0, true
-		fso.MoveFile edit_dir & "\" & filename & ".ick",  edit_dir & "\" & filename
+		' Select scanner by computer name
+		scanner_name = scanner_by_computer_name (shell.ExpandEnvironmentStrings ("%computername%")).Text
+		shell.Run "cscript lib/cms.vbs " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & chr(34) & scanner_name & chr(34)
 	end if
 	' If this image has a backside & brun = 0
 	' then don't ask questions, but continue the loop

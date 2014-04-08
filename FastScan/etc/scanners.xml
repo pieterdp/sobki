@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Template
+<scanner name="">
+	<name></name>
+	<computer relation="attached-to"></computer>
+	<icc relation="source-profile|destination-profile" type="external|included|none"></icc>
+	<company relation="maker"></company>
+</scanner>
+-->
+<scanners>
+	<scanner name="ScanMaker 9800XL plus">
+		<name>ScanMaker 9800XL plus</name>
+		<computer relation="attached-to">PC1240047</computer>
+		<icc relation="source-profile" type="external">L:\PBC\Beeldbank\1_Digitalisering\0_Scansysteem\1_Scanner\ScanMaker 9800XL plus\Kleurprofielen\SF_R (Microtek ScanMaker 9800XL+)-pc1240047.icc</icc>
+		<icc relation="destination-profile" type="included">eciRGB_v2_ICCv4.icc</icc>
+		<company relation="maker">Mikrotek</company>
+	</scanner>
+	<scanner name="HP ScanJet 8200">
+		<name>HP ScanJet 8200</name>
+		<computer relation="attached-to">PC1440080</computer>
+		<icc relation="source-profile" type="none"></icc>
+		<icc relation="destination-profile" type="included">eciRGB_v2_ICCv4.icc</icc>
+		<company relation="maker">HP</company>
+	</scanner>
+	<scanner name="Canon CanoScan 3200F">
+		<name>Canon CanoScan 3200F</name>
+		<computer relation="attached-to">PC1040198</computer>
+		<icc relation="source-profile" type="none"></icc>
+		<icc relation="destination-profile" type="included">eciRGB_v2_ICCv4.icc</icc>
+		<company relation="maker">Canon</company>
+	</scanner>
+</scanners>

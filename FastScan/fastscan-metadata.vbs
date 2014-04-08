@@ -44,7 +44,25 @@ Function read_config_file (pattern, file)
 	' catch-all
 End Function
 
+' Function to read the scanners.xml-file
+Function read_scanners_xml ()
+	' scanners.xml is always in ../etc/
+	'dim scanner_dir = fso.GetParentFolderName (shell.CurrentDirectory) & "\etc\"
+	scanner_dir = shell.CurrentDirectory & "\etc\"
+	scanner_file = scanner_dir & "scanners.xml"
+	set oXML = CreateObject ("MSXML.DOMDocument")
+	oXML.Load scanner_file
+	set read_scanners_xml = oXML
+End Function
 
+' Get scanners by computer name
+Function scanner_by_computer_name (computerName)
+	set sList = sXML.selectNodes ("/scanners/scanner/computer[@relation='attached-to'][text()='" & computerName & "']")
+	for each sItem in sList
+		' This is intentional - 1 scanner/computer
+		scanner_by_computer_name = sItem.ParentNode.selectSingleNode ("name")
+	next
+End Function
 
 
 'Exif.Image.ImageHistory ?
@@ -200,6 +218,7 @@ If Wscript.Arguments.Count < 4 Then
 	Wscript.Quit
 End If
 Set Shell = CreateObject ("WScript.Shell")
+set sXML = read_scanners_xml
 ' Read configuration file
 config_file = Shell.ExpandEnvironmentStrings ("%USERPROFILE%") & "\Applicaties\FastScan\config.txt"
 ' IM Directory
@@ -217,15 +236,8 @@ FilePath = FileName
 Set fso = CreateObject ("Scripting.FileSystemObject")
 Set f = fso.GetFile (FilePath)
 Set nTags = CreateObject ("Scripting.Dictionary") ' Based on the name of the computer to which the scanner is connected
-Set nMakes = CreateObject ("Scripting.Dictionary")
-nMakes ("PC1240047") = "Mikrotek"
-nMakes ("PC1040198") = "Canon"
-nMakes ("PC0840196") = "HP"
-Set nModels = CreateObject ("Scripting.Dictionary")
-nModels ("PC1240047") = "ScanMaker 9800 XL+"
-nModels ("PC1040198") = "CanoScan 3200F"
-nModels ("PC0840196") = "Scanjet 8200"
 ComputerName = Shell.ExpandEnvironmentStrings ("%computername%")
+Scanner = select_scanner_by_computer_name (ComputerName)
 
 ' Real app starts about here
 Wscript.Echo "Parsing metadata ... "
@@ -283,9 +295,9 @@ Select Case mType
 					Case "ImageUniqueID"
 					'Exif.Photo.ImageUniqueID
 						wvcCommand = wcCommand & chr(34) & "set Exif.Photo.ImageUniqueID " & chr(39) & ckcTags (ckcTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
-					Case "ICC_Profile"
-					'Exif.Image.InterColorProfile
-						wvcCommand = wcCommand & chr(34) & "set Exif.Image.InterColorProfile " & chr(39) & ckcTags (ckcTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+					'Case "ICC_Profile"
+					''Exif.Image.InterColorProfile
+					'	wvcCommand = wcCommand & chr(34) & "set Exif.Image.InterColorProfile " & chr(39) & ckcTags (ckcTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
 					Case "Software"
 					'Exif.Image.Software & Xmp.tiff.Software - exists multiple times
 						wvcCommand = wcCommand & chr(34) & "set Exif.Image.Software " & chr(39) & ckcTags (ckcTag) & chr(39) & chr(34) & " -M" & chr(34) & "set Xmp.tiff.Software " & chr(39) & ckcTags (ckcTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
@@ -339,11 +351,11 @@ Select Case mType
 						nTags.Add rTag, IMInfo (5)
 					Case "ColorSpace"
 						nTags.Add rTag, IMInfo (2)
-					Case "ICC_Profile"
-						nTags.Add rTag, IMInfo (3)
-					Case "PhotometicInterpretation"
-						' Convert between this field (int16u) and colorspace (string) -> 2 (RGB) is the default in this case
-						nTags.Add rTag, ConvertColorSpace (IMInfo (2))
+					'Case "ICC_Profile"
+					'	nTags.Add rTag, IMInfo (3)
+					'Case "PhotometicInterpretation"
+					'	' Convert between this field (int16u) and colorspace (string) -> 2 (RGB) is the default in this case
+					'	nTags.Add rTag, ConvertColorSpace (IMInfo (2))
 					Case "SamplesPerPixel"
 						' Don't know this, but convert sets this to 3 (RGB), and convert is used in FastScan to crop stuff
 					Case "ResolutionUnit"
@@ -362,9 +374,9 @@ Select Case mType
 						' 2 Artists: Original & Scan
 						nTags.Add rTag, "Original: ; Scan: PBT: " & UserName
 					Case "Make"
-						nTags.Add rTag, nMakes (ComputerName)
+						nTags.Add rTag, Scanner.parentNode.selectSingleNode ("company[@relation='maker']").Text
 					Case "Model"
-						nTags.Add rTag, nModels (ComputerName)
+						nTags.Add rTag, Scanner.Text
 				End Select
 			End If
 		Next
@@ -391,9 +403,9 @@ Select Case mType
 					Case "ImageUniqueID"
 					'Exif.Photo.ImageUniqueID
 						wvCommand = wCommand & chr(34) & "set Exif.Photo.ImageUniqueID " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
-					Case "ICC_Profile"
-					'Exif.Image.InterColorProfile
-						wvCommand = wCommand & chr(34) & "set Exif.Image.InterColorProfile " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
+					'Case "ICC_Profile"
+					''Exif.Image.InterColorProfile
+					'	wvCommand = wCommand & chr(34) & "set Exif.Image.InterColorProfile " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
 					Case "Software"
 					'Exif.Image.Software & Xmp.tiff.Software - exists multiple times
 						wvCommand = wCommand & chr(34) & "set Exif.Image.Software " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " -M" & chr(34) & "set Xmp.tiff.Software " & chr(39) & nTags (nTag) & chr(39) & chr(34) & " " & chr(34) & FilePath & chr(34)
