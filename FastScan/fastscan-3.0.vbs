@@ -101,8 +101,8 @@ Function u_input (prompt)
 End Function
 
 ' Function to pad the number up to 6 items
-Function pad (number)
-	pad = Right (String (8, "0") & number, 6)
+Function pad (number, length)
+	pad = Right (String (length + 2, "0") & number, length)
 End Function
 
 ' Function to pad the date
@@ -174,22 +174,16 @@ if Wscript.Arguments.Count = 0 Then
 	Wscript.Sleep 5000
 	Wscript.Quit
 end if
-Select Case Wscript.Arguments(0)
-	Case "postkaart"
-		prefix = "PKT"
-	Case "affiche"
-		prefix = "AFF"
-	Case "foto"
-		prefix = "FOT"
-	Case "bidprent"
-		prefix = "BID"
-	Case "porselein"
-		prefix = "POR"
-	Case Else
+prefix = sXML.selectSingleNode ("/list/material[@name='" & Wscript.Arguments(0) & "']/key/prefix").Text
+if prefix = "" then
 	Wscript.Echo "Opgelet! Fout type gespecifieerd: script fastscan-3.0.vbs type. Programma afgesloten."
 	Wscript.Sleep 5000
 	Wscript.Quit
-End Select
+end if
+' Key length
+k_length = sXML.selectSingleNode ("/list/material[@name='" & Wscript.Arguments(0) & "']/key/length").Text
+' Key step
+k_step = sXML.selectSingleNode ("/list/material[@name='" & Wscript.Arguments(0) & "']/key/step").Text
 
 ' Main loop
 ' Program works like this:
@@ -214,7 +208,7 @@ do while 1 = 1
 		' Reset brun
 		brun = 0
 		' New number
-		number = last + 1
+		number = last + k_step
 		' Ask whether this image has a backside
 		do while 1 = 1
 			is_n_correct = u_input ("Automatisch gegenereerd nummer (nieuw nummer ingeven indien niet correct): [" & number & "]")
@@ -248,15 +242,15 @@ do while 1 = 1
 	' Create file name
 	if backside = 1 and brun = 0 then
 		' A side
-		filename = prefix & pad (number) & "A.tif"
+		filename = prefix & pad (number, k_length) & "A.tif"
 	elseif backside = 1 and brun = 1 then
 		' B side
-		filename = prefix & pad (number) & "B.tif"
+		filename = prefix & pad (number, k_length) & "B.tif"
 	else
 		' Normal case
-		filename = prefix & pad (number) & ".tif"
+		filename = prefix & pad (number, k_length) & ".tif"
 	end if
-	unique_id = prefix & pad (number)
+	unique_id = prefix & pad (number, k_length)
 	' Is the filename correct?
 	is_f_correct = u_input ("Automatische bestandsnaam: [" & filename & "]. Correct? ([J]a/[N]ee)")
 	if InStr (LCase (is_f_correct), "n") <> 0 then
@@ -273,9 +267,9 @@ do while 1 = 1
 			Case Else
 				new_back = ""
 		End Select
-		filename = prefix & pad (new_number) & new_back & ".tif"
+		filename = prefix & pad (new_number, k_length) & new_back & ".tif"
 		number = new_number
-		unique_id = prefix & pad (new_number)
+		unique_id = prefix & pad (new_number, k_length)
 	end if
 	' Scan
 	Wscript.Echo "Voorbereiden scan ..."
@@ -305,12 +299,10 @@ do while 1 = 1
 		Pause ("Opgelet! Gebruik de juiste achtergrond voor het scannen (zwart voor witte rand en geen rand; wit voor zwarte rand)!")
 	end if
 	' Some jiggery-pokery because some systems don't quite behave as they should
-	Wscript.Echo "Scannen van " & prefix & pad (number) & " naar " & filename & "..."
+	Wscript.Echo "Scannen van " & prefix & pad (number, k_length) & " naar " & filename & "..."
 	Pause ("Leg het item binnen het scanbare gedeelte op de glasplaat en druk op OK om door te gaan")
 	iview = chr(34) & iv_dir & "i_view32.exe" & chr(34)
 	shell.Run iview & " /scanhidden /dpi=(300,300) /convert=" & raw_dir & "\" & filename, 2, true
-	' Porseleinkaarten require higher DPI settings
-	' shell.Run iview & " /scanhidden /dpi=(600,600) /convert=" & raw_dir & "\" & filename, 2, true
 	if fso.FileExists (raw_dir & "\" & filename) <> true then
 		Wscript.Echo "Fout: scan niet voltooid. Mogelijk is de schijf vol of zijn er verbindingsproblemen met de scanner. Programma afgesloten."
 		Wscript.Sleep 5000
@@ -379,10 +371,23 @@ do while 1 = 1
 						'15% (to be on the safe side)
 					shell.Run "cscript " & chr(34) & fs_dir & "fastscan-crop.vbs" & chr(34) & " " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "15%", 0, true
 			End Select
+		Case Else
+			' Cuttings
+			Wscript.Echo "Bijsnijden van " & filename & "..."
+			Wscript.Echo "Bezig met bijsnijden ... "
+			' Use the new cropper - with high fuzz factor due to nice contrast with black background (le expensive scanneur!) => 10% for scanners with white backgrounds
+			shell.Run "cscript " & chr(34) & fs_dir & "fastscan-crop.vbs" & chr(34) & " " & chr(34) & raw_dir & "\" & filename & chr(34) & " " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & "15%", 0, true
+			if fso.FileExists (edit_dir & "\" & filename) <> true then
+				Wscript.Echo "Fout: bijsnijden niet voltooid. Mogelijk is de schijf vol. Programma afgesloten."
+				Wscript.Sleep 5000
+				Wscript.Quit
+			else
+				Wscript.Echo "Bijsnijden voltooid"
+			end if
 	End Select
 '	Wscript.Echo "Toevoegen metadata ..."
 '	shell.Run "cscript " & chr(34) & fs_dir & "fastscan-metadata.vbs" & chr(34) & " divorce " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & unique_id & " " & chr(34) & username & chr(34), 0, true
-	' Add color profile (TODO automate)
+	' Add color profile
 	if shell.ExpandEnvironmentStrings ("%computername%") = sXML.selectSingleNode ("/scanners/scanner[@name='ScanMaker 9800XL plus']/computer[@relation='attached-to']").Text then
 		shell.Run "cscript " & fs_dir & "lib\cms.vbs " & chr(34) & edit_dir & "\" & filename & chr(34) & " " & chr(34) & "ScanMaker 9800XL plus" & chr(34), 0, true
 	else

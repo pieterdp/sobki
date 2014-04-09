@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Template
+<material name="">
+	<name></name>
+	<key>
+		<prefix></prefix>
+		<length></length> <!-- without prefix 
+		<step></step>
+	</key>
+</material>
+-->
+<!-- Case "postkaart"
+		prefix = "PKT"
+	Case "affiche"
+		prefix = "AFF"
+	Case "foto"
+		prefix = "FOT"
+	Case "bidprent"
+		prefix = "BID"
+	Case "porselein"-->
+<list>
+	<material name="postkaart">
+		<name>postkaart</name>
+		<key>
+			<prefix>PKT</prefix>
+			<length>6</length>
+			<step>1</step>
+		</key>
+	</material>
+	<material name="affiche">
+		<name>affiche</name>
+		<key>
+			<prefix>AFF</prefix>
+			<length>6</length>
+			<step>1</step>
+		</key>
+	</material>
+	<material name="foto">
+		<name>foto</name>
+		<key>
+			<prefix>FOT</prefix>
+			<length>6</length>
+			<step>1</step>
+		</key>
+	</material>
+	<material name="bidprent">
+		<name>bidprent</name>
+		<key>
+			<prefix>BID</prefix>
+			<length>6</length>
+			<step>1</step>
+		</key>
+	</material>
+	<material name="porseleinkaart">
+		<name>porseleinkaart</name>
+		<key>
+			<prefix>POR</prefix>
+			<length>6</length>
+			<step>1</step>
+		</key>
+	</material>
+</list>
