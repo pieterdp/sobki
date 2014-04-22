@@ -59,15 +59,29 @@ Function read_scanners_xml ()
 	set read_scanners_xml = oXML
 End Function
 
-' Get scanners by computer name
-Function scanner_by_computer_name (computerName)
-	set sList = sXML.selectNodes ("/scanners/scanner/computer[@relation='attached-to'][text()='" & computerName & "']")
-	for each sItem in sList
-		' This is intentional - 1 scanner/computer
-		scanner_by_computer_name = sItem.ParentNode.selectSingleNode ("name")
-	next
+' Function to read the material.xml-file
+Function read_material_xml ()
+	' material.xml is always in ../etc/
+	material_dir = fs_dir & "\etc\"
+	material_file = material_dir & "material.xml"
+	set oXML = CreateObject ("MSXML.DOMDocument")
+	if oXML.Load (material_file) <> true then
+		wscript.echo "Error while loading XML file."
+		wscript.quit
+	end if
+	set read_material_xml = oXML
 End Function
 
+' Get scanners by computer name
+Function scanner_by_computer_name (computerName)
+	set nS = sXML.selectNodes ("/scanners/scanner")
+	for each sS in nS
+		set cN = sS.selectSingleNode ("./computer[@relation='attached-to']")
+		if cN.Text = computerName then
+			set scanner_by_computer_name = sS.selectSingleNode ("./name")
+		end if
+	next
+End Function
 ' Function to determine the last used number
 ' Using logdir\prefix_lastlog.txt <= contains the last used number
 Function last_number (logfile)
@@ -143,6 +157,7 @@ iv_dir = read_config_file ("^iview_dir='(.*)'$", config_file) & "\"
 ' CMS Directory
 cms_dir = read_config_file ("^cms_dir='(.*)'$", config_file) & "\"
 set sXML = read_scanners_xml
+set mXML = read_material_xml
 
 ' Alexander
 if LCase (username) = "tolvrij" then
@@ -174,16 +189,16 @@ if Wscript.Arguments.Count = 0 Then
 	Wscript.Sleep 5000
 	Wscript.Quit
 end if
-prefix = sXML.selectSingleNode ("/list/material[@name='" & Wscript.Arguments(0) & "']/key/prefix").Text
+prefix = mXML.selectSingleNode ("/list/material[@name='" & Wscript.Arguments(0) & "']/key/prefix").Text
 if prefix = "" then
 	Wscript.Echo "Opgelet! Fout type gespecifieerd: script fastscan-3.0.vbs type. Programma afgesloten."
 	Wscript.Sleep 5000
 	Wscript.Quit
 end if
 ' Key length
-k_length = sXML.selectSingleNode ("/list/material[@name='" & Wscript.Arguments(0) & "']/key/length").Text
+k_length = mXML.selectSingleNode ("/list/material[@name='" & Wscript.Arguments(0) & "']/key/length").Text
 ' Key step
-k_step = sXML.selectSingleNode ("/list/material[@name='" & Wscript.Arguments(0) & "']/key/step").Text
+k_step = mXML.selectSingleNode ("/list/material[@name='" & Wscript.Arguments(0) & "']/key/step").Text
 
 ' Main loop
 ' Program works like this:
@@ -208,7 +223,7 @@ do while 1 = 1
 		' Reset brun
 		brun = 0
 		' New number
-		number = last + k_step
+		number = last + cInt (k_step)
 		' Ask whether this image has a backside
 		do while 1 = 1
 			is_n_correct = u_input ("Automatisch gegenereerd nummer (nieuw nummer ingeven indien niet correct): [" & number & "]")

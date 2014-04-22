@@ -1,23 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Template
-<material name="">
-	<name></name>
-	<key>
-		<prefix></prefix>
-		<length></length> <!-- without prefix 
-		<step></step>
-	</key>
-</material>
--->
-<!-- Case "postkaart"
-		prefix = "PKT"
-	Case "affiche"
-		prefix = "AFF"
-	Case "foto"
-		prefix = "FOT"
-	Case "bidprent"
-		prefix = "BID"
-	Case "porselein"-->
 <list>
 	<material name="postkaart">
 		<name>postkaart</name>
