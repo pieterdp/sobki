@@ -57,10 +57,12 @@ End Function
 
 ' Get scanners by computer name
 Function scanner_by_computer_name (computerName)
-	set sList = sXML.selectNodes ("/scanners/scanner/computer[@relation='attached-to'][text()='" & computerName & "']")
-	for each sItem in sList
-		' This is intentional - 1 scanner/computer
-		scanner_by_computer_name = sItem.ParentNode.selectSingleNode ("name")
+	set nS = sXML.selectNodes ("/scanners/scanner")
+	for each sS in nS
+		set cN = sS.selectSingleNode ("./computer[@relation='attached-to']")
+		if cN.Text = computerName then
+			set scanner_by_computer_name = sS.selectSingleNode ("./name")
+		end if
 	next
 End Function
 
